@@ -1,0 +1,10 @@
+[project]
+name = "pmo-mvp"
+version = "0.1.0"
+description = "Minimal runnable PMO multi-agent demo based on Feishu Base project-office requirements."
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+py-modules = []
+

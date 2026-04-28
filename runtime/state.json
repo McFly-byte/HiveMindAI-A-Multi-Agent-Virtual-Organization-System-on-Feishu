@@ -1,0 +1,493 @@
+{
+  "meta": {
+    "today": "2026-04-28",
+    "version": "0.1.0"
+  },
+  "projects": [
+    {
+      "id": "proj-phoenix",
+      "name": "Phoenix B2B Portal",
+      "owner": "赵敏",
+      "status": "active",
+      "priority": "high",
+      "start_date": "2026-04-10",
+      "target_launch_date": "2026-05-15",
+      "health": "red",
+      "risk_level": "high",
+      "latest_weekly_report": "/Users/hyper/zenshot/zenshot/PMO/output/weekly_proj-phoenix_2026-04-28.md"
+    },
+    {
+      "id": "proj-atlas",
+      "name": "Atlas Data Sync",
+      "owner": "陈诚",
+      "status": "active",
+      "priority": "medium",
+      "start_date": "2026-04-05",
+      "target_launch_date": "2026-05-20",
+      "health": "yellow",
+      "risk_level": "medium",
+      "latest_weekly_report": "/Users/hyper/zenshot/zenshot/PMO/output/weekly_proj-atlas_2026-04-28.md"
+    },
+    {
+      "id": "proj-orbit",
+      "name": "Orbit Metrics Revamp",
+      "owner": "王兰",
+      "status": "completed",
+      "priority": "medium",
+      "start_date": "2026-03-01",
+      "target_launch_date": "2026-04-18",
+      "health": "green",
+      "risk_level": "low",
+      "latest_weekly_report": ""
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-a1",
+      "project_id": "proj-phoenix",
+      "milestone_id": "mile-p1",
+      "name": "后端接口联调",
+      "owner": "张三",
+      "status": "in_progress",
+      "priority": "high",
+      "planned_start": "2026-04-18",
+      "due_date": "2026-04-29",
+      "last_updated": "2026-04-22",
+      "estimated_hours": 12,
+      "actual_hours": 6,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": true,
+      "risk_flag": false
+    },
+    {
+      "id": "task-a2",
+      "project_id": "proj-phoenix",
+      "milestone_id": "mile-p1",
+      "name": "前端联调",
+      "owner": "李四",
+      "status": "not_started",
+      "priority": "high",
+      "planned_start": "2026-04-26",
+      "due_date": "2026-04-30",
+      "last_updated": "2026-04-26",
+      "estimated_hours": 10,
+      "actual_hours": 0,
+      "dependency_ids": [
+        "task-a1"
+      ],
+      "blocked_reason": "依赖后端接口联调完成",
+      "needs_follow_up": false,
+      "risk_flag": false
+    },
+    {
+      "id": "task-a3",
+      "project_id": "proj-phoenix",
+      "milestone_id": "mile-p2",
+      "name": "测试用例补齐",
+      "owner": "王五",
+      "status": "in_progress",
+      "priority": "medium",
+      "planned_start": "2026-04-24",
+      "due_date": "2026-05-02",
+      "last_updated": "2026-04-27",
+      "estimated_hours": 8,
+      "actual_hours": 3,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": false,
+      "risk_flag": false
+    },
+    {
+      "id": "task-b1",
+      "project_id": "proj-atlas",
+      "milestone_id": "mile-a1",
+      "name": "数据映射梳理",
+      "owner": "陈诚",
+      "status": "in_progress",
+      "priority": "high",
+      "planned_start": "2026-04-16",
+      "due_date": "2026-04-29",
+      "last_updated": "2026-04-25",
+      "estimated_hours": 7,
+      "actual_hours": 5,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": false,
+      "risk_flag": false
+    },
+    {
+      "id": "task-b2",
+      "project_id": "proj-atlas",
+      "milestone_id": "mile-a1",
+      "name": "增量同步脚本",
+      "owner": "陈诚",
+      "status": "in_progress",
+      "priority": "high",
+      "planned_start": "2026-04-20",
+      "due_date": "2026-04-30",
+      "last_updated": "2026-04-23",
+      "estimated_hours": 9,
+      "actual_hours": 5,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": true,
+      "risk_flag": false
+    },
+    {
+      "id": "task-b3",
+      "project_id": "proj-atlas",
+      "milestone_id": "mile-a1",
+      "name": "联调验证",
+      "owner": "周周",
+      "status": "not_started",
+      "priority": "medium",
+      "planned_start": "2026-04-29",
+      "due_date": "2026-05-02",
+      "last_updated": "2026-04-27",
+      "estimated_hours": 6,
+      "actual_hours": 0,
+      "dependency_ids": [
+        "task-b2"
+      ],
+      "blocked_reason": "等待增量同步脚本完成",
+      "needs_follow_up": false,
+      "risk_flag": false
+    },
+    {
+      "id": "task-c1",
+      "project_id": "proj-orbit",
+      "milestone_id": "mile-o1",
+      "name": "指标字典整理",
+      "owner": "孙可",
+      "status": "done",
+      "priority": "medium",
+      "planned_start": "2026-03-10",
+      "due_date": "2026-03-20",
+      "last_updated": "2026-03-19",
+      "estimated_hours": 5,
+      "actual_hours": 6,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": false,
+      "risk_flag": false
+    },
+    {
+      "id": "task-c2",
+      "project_id": "proj-orbit",
+      "milestone_id": "mile-o1",
+      "name": "埋点改造",
+      "owner": "孙可",
+      "status": "done",
+      "priority": "high",
+      "planned_start": "2026-03-15",
+      "due_date": "2026-04-10",
+      "last_updated": "2026-04-12",
+      "estimated_hours": 10,
+      "actual_hours": 14,
+      "dependency_ids": [],
+      "blocked_reason": "",
+      "needs_follow_up": false,
+      "risk_flag": false
+    }
+  ],
+  "milestones": [
+    {
+      "id": "mile-p1",
+      "project_id": "proj-phoenix",
+      "name": "联调完成",
+      "owner": "赵敏",
+      "planned_date": "2026-04-30",
+      "actual_date": "",
+      "status": "at_risk",
+      "summary": "联调必须在月底完成，否则影响测试排期。"
+    },
+    {
+      "id": "mile-p2",
+      "project_id": "proj-phoenix",
+      "name": "测试开始",
+      "owner": "赵敏",
+      "planned_date": "2026-05-03",
+      "actual_date": "",
+      "status": "pending",
+      "summary": "测试阶段启动。"
+    },
+    {
+      "id": "mile-a1",
+      "project_id": "proj-atlas",
+      "name": "同步链路打通",
+      "owner": "陈诚",
+      "planned_date": "2026-05-02",
+      "actual_date": "",
+      "status": "pending",
+      "summary": "完成增量同步链路。"
+    },
+    {
+      "id": "mile-o1",
+      "project_id": "proj-orbit",
+      "name": "改造上线",
+      "owner": "王兰",
+      "planned_date": "2026-04-18",
+      "actual_date": "2026-04-21",
+      "status": "done",
+      "summary": "项目已交付。"
+    }
+  ],
+  "risk_issues": [
+    {
+      "id": "risk-historical-1",
+      "project_id": "proj-orbit",
+      "title": "埋点改造需求二次变更",
+      "type": "scope_change",
+      "level": "medium",
+      "reason": "产品需求冻结时间太晚，导致埋点口径返工。",
+      "owner": "王兰",
+      "status": "closed",
+      "suggested_action": "下个项目提前完成指标口径冻结。",
+      "should_escalate": false,
+      "created_on": "2026-04-05"
+    },
+    {
+      "id": "risk-80aac611",
+      "project_id": "proj-phoenix",
+      "title": "Phoenix B2B Portal 项目风险扫描",
+      "type": "project_health",
+      "level": "high",
+      "reason": "任务 后端接口联调 已 6 天未更新。；里程碑 联调完成 临近，但任务 后端接口联调 尚未完成。；里程碑 联调完成 临近，但任务 前端联调 尚未完成。；会议纪要 Phoenix 周例会 存在风险信号但尚未同步到风险表。",
+      "owner": "赵敏",
+      "status": "open",
+      "suggested_action": "立即补齐信息、召开专项同步会，并评估资源支援或里程碑调整。",
+      "should_escalate": true,
+      "created_on": "2026-04-28"
+    },
+    {
+      "id": "risk-b1934ac1",
+      "project_id": "proj-atlas",
+      "title": "Atlas Data Sync 项目风险扫描",
+      "type": "project_health",
+      "level": "medium",
+      "reason": "任务 增量同步脚本 已 5 天未更新。；任务 联调验证 存在阻塞: 等待增量同步脚本完成",
+      "owner": "陈诚",
+      "status": "open",
+      "suggested_action": "48 小时内补齐状态并确认关键路径任务是否可按时完成。",
+      "should_escalate": false,
+      "created_on": "2026-04-28"
+    }
+  ],
+  "meeting_notes": [
+    {
+      "id": "meeting-p1",
+      "project_id": "proj-phoenix",
+      "title": "Phoenix 周例会",
+      "meeting_date": "2026-04-27",
+      "participants": [
+        "赵敏",
+        "张三",
+        "李四",
+        "产品经理-周岚"
+      ],
+      "summary": "接口定义最近一周改动了两次，产品侧今天确认最终字段。",
+      "decisions": [
+        "接口字段 18:00 前确认最终版本"
+      ],
+      "todos": [
+        "产品确认字段",
+        "后端同步接口文档"
+      ],
+      "risk_signals": [
+        "接口定义可能继续变更",
+        "关键路径任务更新滞后"
+      ],
+      "synced_to_risks": false
+    },
+    {
+      "id": "meeting-a1",
+      "project_id": "proj-atlas",
+      "title": "Atlas 同步专项会",
+      "meeting_date": "2026-04-26",
+      "participants": [
+        "陈诚",
+        "周周",
+        "数据平台-刘洋"
+      ],
+      "summary": "同步脚本还在处理中，暂未明确阻塞。",
+      "decisions": [
+        "本周优先完成同步链路"
+      ],
+      "todos": [
+        "陈诚补充进度说明"
+      ],
+      "risk_signals": [],
+      "synced_to_risks": true
+    }
+  ],
+  "weekly_reports": [
+    {
+      "id": "report-0e757164",
+      "project_id": "proj-phoenix",
+      "period": "2026-04-28",
+      "project_summary": "开放任务 3 个，高风险 1 个。",
+      "risk_summary": "任务 后端接口联调 已 6 天未更新。；里程碑 联调完成 临近，但任务 后端接口联调 尚未完成。；里程碑 联调完成 临近，但任务 前端联调 尚未完成。；会议纪要 Phoenix 周例会 存在风险信号但尚未同步到风险表。",
+      "blockers": "依赖后端接口联调完成",
+      "next_week_plan": "继续推进关键路径任务并关闭高风险项。",
+      "decision_requests": "建议召开 15 分钟专项同步，确认关键路径任务与里程碑拆分方案。",
+      "document_path": "/Users/hyper/zenshot/zenshot/PMO/output/weekly_proj-phoenix_2026-04-28.md",
+      "send_status": "generated"
+    },
+    {
+      "id": "report-4f61b333",
+      "project_id": "proj-atlas",
+      "period": "2026-04-28",
+      "project_summary": "开放任务 3 个，高风险 0 个。",
+      "risk_summary": "任务 增量同步脚本 已 5 天未更新。；任务 联调验证 存在阻塞: 等待增量同步脚本完成",
+      "blockers": "等待增量同步脚本完成",
+      "next_week_plan": "继续推进关键路径任务并关闭高风险项。",
+      "decision_requests": "暂无",
+      "document_path": "/Users/hyper/zenshot/zenshot/PMO/output/weekly_proj-atlas_2026-04-28.md",
+      "send_status": "generated"
+    }
+  ],
+  "follow_ups": [
+    {
+      "id": "fu-0755a792",
+      "project_id": "proj-phoenix",
+      "recipient": "张三",
+      "related_record_id": "task-a1",
+      "source_type": "stale_task",
+      "question": "任务 后端接口联调 已 6 天未更新。 请补充当前完成度、阻塞点和预计完成时间。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    },
+    {
+      "id": "fu-8e1d96eb",
+      "project_id": "proj-phoenix",
+      "recipient": "赵敏",
+      "related_record_id": "mile-p1",
+      "source_type": "milestone_at_risk",
+      "question": "里程碑 联调完成 临近，但任务 后端接口联调 尚未完成。 请确认是否需要调整里程碑或拆分交付节点。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    },
+    {
+      "id": "fu-48849ce1",
+      "project_id": "proj-phoenix",
+      "recipient": "赵敏",
+      "related_record_id": "mile-p1",
+      "source_type": "milestone_at_risk",
+      "question": "里程碑 联调完成 临近，但任务 前端联调 尚未完成。 请确认是否需要调整里程碑或拆分交付节点。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    },
+    {
+      "id": "fu-04736b20",
+      "project_id": "proj-atlas",
+      "recipient": "陈诚",
+      "related_record_id": "task-b2",
+      "source_type": "stale_task",
+      "question": "任务 增量同步脚本 已 5 天未更新。 请补充当前完成度、阻塞点和预计完成时间。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    },
+    {
+      "id": "fu-c6c3fe35",
+      "project_id": "proj-phoenix",
+      "recipient": "赵敏",
+      "related_record_id": "meeting-p1",
+      "source_type": "unsynced_meeting_risk",
+      "question": "会议纪要 Phoenix 周例会 存在风险信号但尚未同步到风险表。 请确认是否应同步到风险表，并说明影响范围。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    },
+    {
+      "id": "fu-b0acd93a",
+      "project_id": "proj-phoenix",
+      "recipient": "赵敏",
+      "related_record_id": "risk-80aac611",
+      "source_type": "high_risk_confirmation",
+      "question": "当前风险已被识别为高风险，请补充是否需要调整里程碑、调配资源或升级管理层决策。",
+      "status": "open",
+      "sent_on": "2026-04-28"
+    }
+  ],
+  "coordination_suggestions": [
+    {
+      "id": "coord-b76feeaa",
+      "project_id": "proj-phoenix",
+      "risk_id": "risk-80aac611",
+      "suggestion": "建议召开 15 分钟专项同步，确认关键路径任务与里程碑拆分方案。",
+      "status": "proposed",
+      "created_on": "2026-04-28"
+    }
+  ],
+  "retrospectives": [
+    {
+      "id": "retro-da7fc354",
+      "project_id": "proj-orbit",
+      "generated_on": "2026-04-28",
+      "summary": "超预算任务 2 个，历史风险 1 个。",
+      "document_path": "/Users/hyper/zenshot/zenshot/PMO/output/retro_proj-orbit_2026-04-28.md"
+    }
+  ],
+  "agent_runs": [
+    {
+      "id": "run-c043be34",
+      "agent": "project-secretary",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "finding_count": 5,
+        "types": [
+          "milestone_at_risk",
+          "stale_task",
+          "unsynced_meeting_risk"
+        ]
+      }
+    },
+    {
+      "id": "run-3a7893f7",
+      "agent": "risk-assessor",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "risk_count": 2,
+        "high_risk_count": 1
+      }
+    },
+    {
+      "id": "run-0ac032e8",
+      "agent": "follow-up-agent",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "follow_up_count": 6
+      }
+    },
+    {
+      "id": "run-59d8cd35",
+      "agent": "resource-coordinator",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "suggestion_count": 1
+      }
+    },
+    {
+      "id": "run-7024c6a3",
+      "agent": "weekly-report-agent",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "report_count": 2
+      }
+    },
+    {
+      "id": "run-6ee09550",
+      "agent": "retrospective-agent",
+      "ran_on": "2026-04-28",
+      "summary": {
+        "ran_on": "2026-04-28",
+        "retrospective_count": 1
+      }
+    }
+  ]
+}
