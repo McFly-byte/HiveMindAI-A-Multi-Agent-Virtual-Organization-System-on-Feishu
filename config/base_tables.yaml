@@ -1,0 +1,23 @@
+app_token_env: FEISHU_APP_TOKEN
+allowed_tables:
+  Projects:
+    table_id: "tbl_projects_todo"
+    fields: [项目名称, 项目负责人, 项目状态, 项目优先级, 开始日期, 目标上线日期, 当前健康度, 当前风险等级, 本周关键进展, 最新周报链接]
+  Tasks:
+    table_id: "tbl_tasks_todo"
+    fields: [任务名称, 所属项目, 所属里程碑, 负责人, 角色类型, 状态, 优先级, 计划开始时间, 截止时间, 最近更新时间, 预计工时, 实际工时, 依赖任务, 阻塞说明, 是否需要追问, 风险标记, Agent 处理摘要]
+  Milestones:
+    table_id: "tbl_milestones_todo"
+    fields: [里程碑名称, 所属项目, 责任人, 计划日期, 实际日期, 状态, 延期天数, 依赖说明, 里程碑摘要, 风险标记]
+  Risks:
+    table_id: "tbl_risks_todo"
+    fields: [风险标题, 所属项目, 关联任务, 风险类型, 风险等级, 触发原因, 当前状态, 责任人, 建议动作, 是否升级, 升级对象, 最近更新时间, 由哪个 Agent 创建, 证据来源]
+  FollowUps:
+    table_id: "tbl_followups_todo"
+    fields: [追问标题, 所属项目, 关联任务, 关联风险, 追问对象, 追问原因, 追问内容, 追问状态, 回复内容, 追问时间, 回复时间, 是否已回写任务或风险表]
+  WeeklyReports:
+    table_id: "tbl_weekly_reports_todo"
+    fields: [周期, 所属项目, 项目摘要, 本周进展, 风险摘要, 阻塞项, 下周计划, 决策建议, 待拍板事项, 文档链接, 发送状态, 生成时间, 由哪个 Agent 创建]
+  AgentRuns:
+    table_id: "tbl_agent_runs_todo"
+    fields: [运行 ID, Agent 名称, 触发方式, 输入表, 输入记录 ID, 输出表, 输出记录 ID, 执行动作, 判断依据摘要, 执行状态, 错误信息, 开始时间, 结束时间]

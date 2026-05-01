@@ -1,0 +1,6 @@
+default_max_steps: 5
+agents:
+  ProjectSecretaryAgent: {enabled: true, max_steps: 5}
+  RiskAnalysisAgent: {enabled: true, max_steps: 5}
+  FollowUpAgent: {enabled: true, max_steps: 5}
+  WeeklyReportAgent: {enabled: true, max_steps: 5}

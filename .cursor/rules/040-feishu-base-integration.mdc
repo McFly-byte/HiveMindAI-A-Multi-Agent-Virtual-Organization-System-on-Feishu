@@ -1,0 +1,87 @@
+---
+description: "飞书多维表格 Base 集成、字段映射、真实 API 读写和安全规范"
+globs:
+  - "adaptors/feishu/**/*.py"
+  - "tools/base_*_tool.py"
+  - "config/base_tables.yaml"
+  - "scripts/init_base_schema.py"
+  - "scripts/import_demo_data.py"
+alwaysApply: false
+---
+
+# Feishu Base Integration Rules
+
+核心原则：
+1. 飞书 Base 是唯一业务事实源。
+2. 所有关键业务数据必须真实读写飞书 Base。
+3. 禁止用本地 mock 数据替代核心链路。
+4. Agent、Gateway、Service 不得直接调用飞书 SDK 或 HTTP API。
+5. 所有飞书调用必须通过 adaptors/feishu 层。
+6. 所有 Base 读写必须通过 BaseQueryTool、BaseCreateTool、BaseUpdateTool。
+
+Feishu Adaptor 职责：
+adaptors/feishu/base_adaptor.py 负责：
+- list_records
+- batch_create_records
+- batch_update_records
+- get_field_schema
+- validate_fields
+
+adaptors/feishu/token_manager.py 负责：
+- 获取 tenant_access_token 或 app_access_token
+- token 缓存
+- token 过期刷新
+- token 日志脱敏
+
+adaptors/feishu/field_mapper.py 负责：
+- table_name 到 table_id 映射
+- 内部字段 key 到飞书字段名映射
+- 写入前字段白名单校验
+- 缺失字段报错
+
+config/base_tables.yaml：
+必须集中配置：
+- app_token
+- table_id
+- field mapping
+- 可写字段白名单
+- 可读字段白名单
+
+禁止行为：
+1. 禁止在代码中散落 table_id。
+2. 禁止在 Agent 中直接使用中文字段名拼写写入。
+3. 禁止在多个文件中重复维护字段映射。
+4. 禁止硬编码 app_token。
+5. 禁止打印完整 token。
+6. 禁止把 .env 提交到 Git。
+7. 禁止在飞书 API 不可用时伪造成功结果。
+8. 禁止吞掉飞书 API 错误码。
+
+错误处理：
+飞书 API 调用失败时，应保留：
+- table_name
+- action
+- record_id，如有
+- error_code，如有
+- error_message 摘要
+- retry_count
+
+但不得保留：
+- app_secret
+- access_token
+- 完整请求头
+- 敏感原始响应
+
+读写策略：
+1. 读操作允许分页读取。
+2. 写操作尽量批量写入。
+3. 写操作前必须 validate_fields。
+4. 写操作失败必须明确返回失败，不要假装成功。
+5. 对限流、网络超时可有限重试。
+6. 对字段不存在、表不存在、权限不足不应盲目重试，应直接报配置错误或权限错误。
+
+MVP 对视图的态度：
+1. 不把甘特图、看板、仪表盘视图读取作为主链路依赖。
+2. Agent 只依赖底层表数据。
+3. 视图可以由飞书 Base UI 人工配置用于 Demo 展示。
+4. 如果后续读取 view_id，只能作为过滤记录的辅助能力。

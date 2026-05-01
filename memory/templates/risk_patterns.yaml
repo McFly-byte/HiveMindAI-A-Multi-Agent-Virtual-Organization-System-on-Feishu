@@ -1,0 +1,5 @@
+patterns:
+  - name: overdue_task
+    description: 任务截止时间早于今天且状态不是已完成
+  - name: blocked_without_reason
+    description: 阻塞任务缺少阻塞说明
