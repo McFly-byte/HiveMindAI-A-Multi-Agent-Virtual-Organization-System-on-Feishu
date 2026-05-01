@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "PMO Agent Office"
+    app_name: str = "HiveMindAI"
     app_env: str = "local"
     api_key: str = "local-dev-key"
     log_level: str = "INFO"
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = 30
     langsmith_tracing: bool = False
     langsmith_api_key: str | None = None
-    langsmith_project: str = "pmo-agent-office"
+    langsmith_project: str = "hivemindai"
     trace_local_dir: Path = Path("traces")
     memory_local_file: Path = Path("memory/session_runs.jsonl")
     agent_max_steps: int = Field(default=5, ge=1, le=20)

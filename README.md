@@ -1,6 +1,6 @@
-# PMO Agent Office
+# HiveMindAI
 
-PMO Agent Office 是参加“飞书 AI 校园挑战赛 / 飞书 AI 产品创新赛道”的 MVP 项目骨架。项目主题是 Multi-Agent Network：多维表格上的多智能体虚拟组织，业务场景是软件研发项目 PMO 的虚拟项目办公室。
+HiveMindAI 是参加“飞书 AI 校园挑战赛 / 飞书 AI 产品创新赛道”的 MVP 项目骨架。项目主题是 Multi-Agent Network：多维表格上的多智能体虚拟组织，业务场景是软件研发项目 PMO 的虚拟项目办公室。
 
 ## MVP 业务闭环
 

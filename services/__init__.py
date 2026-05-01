@@ -1,1 +1,1 @@
-"""PMO Agent Office package."""
+"""HiveMindAI package."""
