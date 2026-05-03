@@ -16,45 +16,20 @@ PRIORITY_WEIGHTS = {"high": 3, "medium": 2, "low": 1}
 class AgentContext:
     today: date
     output_dir: Path
-    memory: object | None = None  # Optional MemoryStore; episodic memory written when present
-    run_id: str | None = None
 
 
 class BaseAgent:
     agent_name = "base-agent"
 
-    def log_run(self, state: dict, summary: dict, ctx: AgentContext | None = None) -> str:
-        run_id = new_id("run")
+    def log_run(self, state: dict, summary: dict) -> None:
         state["agent_runs"].append(
             {
-                "id": run_id,
+                "id": new_id("run"),
                 "agent": self.agent_name,
                 "ran_on": summary["ran_on"],
                 "summary": summary,
             }
         )
-        if ctx is not None and ctx.memory is not None:
-            try:
-                ctx.memory.write_memory(
-                    content=self._format_run_episode(summary),
-                    agent_id=self.agent_name,
-                    memory_type="episodic",
-                    run_id=run_id,
-                    project_id=summary.get("project_id"),
-                    tags=[self.agent_name, "run_summary"],
-                )
-            except Exception:
-                # Memory is best-effort; agent execution must not fail because of it.
-                pass
-        return run_id
-
-    def _format_run_episode(self, summary: dict) -> str:
-        parts = [f"{self.agent_name} 于 {summary.get('ran_on')} 完成一次运行"]
-        for key, value in summary.items():
-            if key in {"ran_on", "project_id"}:
-                continue
-            parts.append(f"{key}={value}")
-        return "；".join(parts)
 
 
 class SecretaryAgent(BaseAgent):
@@ -131,7 +106,6 @@ class SecretaryAgent(BaseAgent):
                 "finding_count": len(findings),
                 "types": sorted({item["type"] for item in findings}),
             },
-            ctx,
         )
         return findings
 
@@ -212,7 +186,6 @@ class RiskAssessmentAgent(BaseAgent):
                 "risk_count": len(created_risks),
                 "high_risk_count": sum(1 for item in created_risks if item["level"] == "high"),
             },
-            ctx,
         )
         return created_risks
 
@@ -286,7 +259,6 @@ class FollowUpAgent(BaseAgent):
                 "ran_on": today,
                 "follow_up_count": len(follow_ups),
             },
-            ctx,
         )
         return follow_ups
 
@@ -348,7 +320,6 @@ class ResourceCoordinatorAgent(BaseAgent):
                 "ran_on": today,
                 "suggestion_count": len(suggestions),
             },
-            ctx,
         )
         return suggestions
 
@@ -414,7 +385,6 @@ class WeeklyReportAgent(BaseAgent):
                 "ran_on": today,
                 "report_count": len(reports),
             },
-            ctx,
         )
         return reports
 
@@ -526,7 +496,6 @@ class RetrospectiveAgent(BaseAgent):
                 "ran_on": today,
                 "retrospective_count": len(outputs),
             },
-            ctx,
         )
         return outputs
 
