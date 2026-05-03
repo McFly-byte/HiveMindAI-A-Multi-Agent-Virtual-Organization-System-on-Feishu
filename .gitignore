@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Memory store runtime artifacts
+runtime/memory.db
+runtime/memory.db-journal
+runtime/memory.db-wal
+runtime/memory.db-shm
+
+# Claude Code worktree metadata
+.claude/
