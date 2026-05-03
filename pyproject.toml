@@ -5,6 +5,11 @@ description = "Minimal runnable PMO multi-agent demo based on Feishu Base projec
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+# Vector-backed retrieval. Install with: pip install -e '.[memory]'
+# Without this extra the system uses BM25/FTS5 only — useful for offline/CI runs.
+memory = ["mem0ai>=0.1.0"]
+
 [tool.setuptools]
 py-modules = []
 

@@ -15,9 +15,10 @@ from .agents import (
 
 
 class PMOCycleEngine:
-    def __init__(self, store, output_dir: Path) -> None:
+    def __init__(self, store, output_dir: Path, memory=None) -> None:
         self.store = store
         self.output_dir = output_dir
+        self.memory = memory
         self.secretary = SecretaryAgent()
         self.risk = RiskAssessmentAgent()
         self.follow_up = FollowUpAgent()
@@ -30,6 +31,7 @@ class PMOCycleEngine:
         ctx = AgentContext(
             today=date.fromisoformat(state["meta"]["today"]),
             output_dir=self.output_dir,
+            memory=self.memory,
         )
 
         findings = self.secretary.run(state, ctx)
