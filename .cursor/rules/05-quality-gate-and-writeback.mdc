@@ -1,0 +1,34 @@
+---
+description: QualityGate rules for deterministic validation before Base writeback
+globs: ["src/agent_runtime/quality_gate.py", "src/agent_runtime/agent_io.py", "agents/coordinator/**/*", "projects/**/table_manifest.yaml"]
+alwaysApply: false
+---
+
+# Quality Gate And Writeback
+
+所有写回 Base 的 proposed_creates 和 proposed_patches 必须经过 QualityGate。QualityGate 不应该调用 LLM，优先使用确定性规则。
+
+通用写回规则：
+1. 写回字段必须存在于 `table_manifest.yaml`。
+2. writable_fields 必须由 `table_manifest.yaml` 决定，不允许硬编码绕过。
+3. 同一风险、同一追问、同一周期周报必须通过 idempotency_key 防止重复创建。
+4. 子 Agent 不直接写 Base，真实写回由 Coordinator 汇总后经 QualityGate 通过 Tool Layer 执行。
+
+风险写回前必须检查：
+1. 必须有 risk_type、risk_level、trigger_reason 和 evidence_refs。
+2. evidence_refs 必须能追溯到 Base 记录或明确来源。
+3. 高风险必须有 suggested_actions。
+4. 高风险必须有 followup_target_role，或明确说明为什么不需要追问。
+5. 必须有 idempotency_key。
+
+追问写回前必须检查：
+1. 必须有 target_user 或 target_role。
+2. 必须有具体任务、风险或缺失字段上下文。
+3. questions 不得为空。
+4. message 不得是泛泛模板。
+5. 必须有 idempotency_key。
+
+周报写回前必须检查：
+1. 必须包含项目整体状态、本周进展、风险摘要、阻塞项、下周计划和待拍板事项。
+2. 如果没有待拍板事项，也要明确写“暂无”。
+3. 不允许编造 Base 中没有证据的事实。

@@ -1,0 +1,38 @@
+---
+description: Agent Runtime ownership, boundaries, loop limits, and writeback authority
+globs: ["src/agent_runtime/**/*.py", "agents/**/*.py", "agents/**/agent.yaml"]
+alwaysApply: false
+---
+
+# Agent Runtime Boundaries
+
+Agent Runtime 负责统一运行 Agent、管理 AgentSession、加载 AgentConfig、执行 Agent Loop、记录 AgentRuns，并执行结构化输出校验。
+
+核心循环固定为 Observe -> Think -> Act -> Verify -> Log。MVP 阶段必须限制 max_steps，禁止无限自主循环。
+
+Runtime 边界：
+1. Runtime 不直接封装 Feishu API。
+2. Runtime 不直接实现长期记忆系统。
+3. Runtime 不直接生成业务规则之外的底层工具。
+4. Runtime 不直接读取环境变量或密钥。
+5. Runtime 只能通过 Tool Layer 接口调用外部能力。
+6. Tool Layer、Memory、Feishu Adaptor 由其他模块实现，Runtime 只引用抽象 tool_name、ToolResult、RecordRef 等结构。
+
+Agent 写回边界：
+1. 子 Agent 不直接写 Base，只能输出结构化结果和 proposed_actions。
+2. Coordinator 是唯一可以发起写回计划的 Agent。
+3. 真实写回必须经过 QualityGate 校验后，再通过 Tool Layer 执行。
+4. 子 Agent 之间不通过全局变量、私有内存或点对点通信传递关键业务态。
+5. AgentSession 只保存短期运行态，不保存关键业务态。
+
+结构化输出要求：
+1. Agent 输出必须是 Pydantic schema 可校验的结构化对象。
+2. schema 必须能承载 evidence_refs、proposed_actions、status 和 errors。
+3. LLM 原始输出不能绕过 schema 校验进入写回流程。
+
+运行限制必须配置：
+- max_steps
+- timeout_seconds
+- max_retries
+- max_tool_calls
+- max_llm_calls

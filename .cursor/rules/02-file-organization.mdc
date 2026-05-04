@@ -1,0 +1,56 @@
+---
+description: Required file layout for Agent Runtime, agent prompts, configs, and project state
+globs: ["src/agent_runtime/**/*.py", "agents/**/*", "projects/**/*", "prompts/shared/**/*"]
+alwaysApply: false
+---
+
+# File Organization
+
+推荐目录结构：
+
+```text
+src/
+  agent_runtime/
+    enums.py
+    base_refs.py
+    events.py
+    config.py
+    session.py
+    project_state.py
+    quality_gate.py
+    agent_runs.py
+    agent_io.py
+
+agents/
+  coordinator/
+  project_secretary/
+  risk_analysis/
+  followup/
+  weekly_report/
+
+projects/
+  enterprise_rag/
+    PROJECT.md
+    project_state.yaml
+    table_manifest.yaml
+
+prompts/
+  shared/
+    output_rules.md
+    evidence_rules.md
+    no_hallucination_rules.md
+```
+
+目录职责：
+1. `src/agent_runtime/` 只放运行时数据结构、运行时抽象和确定性 QualityGate schema。
+2. `agents/{agent_name}/AGENT.md` 存放该 Agent 的 system prompt。
+3. `agents/{agent_name}/agent.yaml` 存放该 Agent 的 AgentConfig。
+4. `projects/{project_id}/PROJECT.md` 存放项目自然语言描述。
+5. `projects/{project_id}/project_state.yaml` 存放项目状态、成员、职责、默认时间范围等。
+6. `projects/{project_id}/table_manifest.yaml` 存放 Base 表描述、字段、字段类型、字段映射和是否允许写入。
+7. `prompts/shared/` 存放跨 Agent 共享的输出约束、证据约束和防幻觉约束。
+
+禁止混放：
+1. 不允许把 AGENT.md、agent.yaml、project_state.yaml、table_manifest.yaml 混在同一层目录。
+2. 不允许把 Prompt、配置、运行态、项目态、业务表 schema 混在一个文件里。
+3. 不允许把底层 Feishu API、Tool 或 Memory 实现放进 `src/agent_runtime/`。

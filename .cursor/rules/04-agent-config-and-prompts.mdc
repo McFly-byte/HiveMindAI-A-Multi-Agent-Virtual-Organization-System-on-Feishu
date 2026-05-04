@@ -1,0 +1,47 @@
+---
+description: Agent prompt and agent.yaml requirements for Coordinator and business agents
+globs: ["agents/**/AGENT.md", "agents/**/agent.yaml", "prompts/shared/**/*.md"]
+alwaysApply: false
+---
+
+# Agent Config And Prompts
+
+每个 Agent 必须有 `AGENT.md` 和 `agent.yaml`。
+
+`AGENT.md` 只写该 Agent 的角色、职责、边界、输出要求和禁止行为。不要在 prompt 中写 API key、token、secret 或具体 Feishu API 调用细节。
+
+`agent.yaml` 必须包含：
+- agent_name
+- role
+- display_name
+- description
+- workspace_path
+- prompt.agent_md_path
+- prompt.shared_prompt_paths
+- prompt.output_schema_name
+- model.provider
+- model.model_name
+- model.temperature
+- model.json_mode
+- runtime_limits.max_steps
+- runtime_limits.max_tool_calls
+- runtime_limits.max_llm_calls
+- runtime_limits.timeout_seconds
+- tool_policy.allowed_tools
+- tool_policy.denied_tools
+- write_policy.can_write_base
+- write_policy.writable_tables
+- write_policy.require_quality_gate
+- input_schema
+- output_schema
+
+写回策略：
+1. ProjectSecretaryAgent、RiskAnalysisAgent、FollowUpAgent、WeeklyReportAgent 的 `write_policy.can_write_base` 必须为 false。
+2. CoordinatorAgent 的 `write_policy.can_write_base` 可以为 true，但 `write_policy.require_quality_gate` 必须为 true。
+3. 子 Agent 只能输出结构化结果和 proposed_actions，不直接写 Base。
+
+Agent 职责边界：
+1. ProjectSecretaryAgent 只负责只读巡检，不负责最终风险定级。
+2. RiskAnalysisAgent 证据不足时必须输出 need_more_evidence，不得强行生成风险结论。
+3. FollowUpAgent 在 MVP 阶段不得直接发送飞书消息，只能生成追问建议。
+4. WeeklyReportAgent 不负责重新判断风险，只能汇总已有项目画像、风险和追问闭环情况。

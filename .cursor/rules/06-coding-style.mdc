@@ -1,0 +1,33 @@
+---
+description: Python and Pydantic coding style for HiveMindAI MVP Agent Runtime
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# Coding Style
+
+基础要求：
+1. 使用 Python 3.11+。
+2. 使用 Pydantic v2。
+3. 类型标注必须完整。
+4. 文件内不要出现过长函数。
+5. 生成代码时优先保持 MVP 简洁，不要引入复杂抽象、复杂继承或插件系统。
+
+Agent Runtime 代码约束：
+1. 数据结构文件只定义模型、枚举和类型，不写业务执行逻辑。
+2. 不要在 `agent_runtime` 中直接 import Feishu SDK。
+3. 不要在 `agent_runtime` 中直接读取环境变量。
+4. 不要在 schema 文件中写网络请求。
+5. 不要在 schema 文件中写数据库访问。
+6. 如果发现现有代码与这些规则冲突，先最小修改，不要大规模重构无关模块。
+
+命名和注释：
+1. 字段名保持英文。
+2. 注释使用中文或简洁英文。
+3. 枚举值中可以保留中文业务枚举，例如“高”“中”“低”“进行中”“阻塞”。
+4. 业务含义必须通过清晰字段名、枚举和 schema 表达，不要依赖隐式 dict 约定。
+
+安全和边界：
+1. 不要硬编码 app_id、app_secret、app_token、LLM key。
+2. 不要在日志中打印完整 token、secret 或完整请求头。
+3. Runtime 只能依赖 Tool Layer 抽象，不能绕过 Coordinator + QualityGate 写回链路。

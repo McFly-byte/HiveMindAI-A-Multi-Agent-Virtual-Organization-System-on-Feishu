@@ -1,0 +1,37 @@
+---
+description: HiveMindAI project context and non-negotiable MVP constraints
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# HiveMindAI Project Context
+
+本项目是 HiveMindAI，服务于飞书 AI 校园挑战赛 MVP。
+
+业务场景是软件研发项目 PMO 的多 Agent 虚拟项目办公室。系统以飞书多维表格 Base 作为唯一业务事实源，对项目、任务、里程碑、风险、追问和周报进行巡检、分析、追问和汇报。
+
+当前阶段优先关注 Agent Runtime 层，目标是支撑 Demo 稳定、可复现、可审计，而不是建设复杂平台化系统。
+
+核心约束：
+1. Base 是唯一业务事实源，关键业务态不得只保存在 AgentSession、本地文件、全局变量或长期记忆中。
+2. MVP 优先，不实现复杂前端、复杂 WebSocket、复杂多租户、复杂审批流或复杂长期记忆系统。
+3. Agent Runtime 不实现底层 Feishu API、Tool、Memory 的具体逻辑，只定义与这些模块交互的数据结构和边界。
+4. 所有 Agent 输出必须服务于可追踪、可解释和可回放。
+5. LLM 输出尽量为 JSON，并经过 Pydantic schema 校验后才能进入后续流程。
+6. 每次运行必须能追踪 run_id、project_id、agent_name、trigger_type、input_records、output_records、tool_calls、llm_calls、errors 和 status。
+
+关键 Base 表：
+- Projects
+- Tasks
+- Milestones
+- Risks
+- FollowUps
+- WeeklyReports
+- AgentRuns
+
+内部 Agent 结构：
+- Coordinator Agent：系统内部主控编排器，不对外作为虚拟员工展示。
+- ProjectSecretaryAgent：项目秘书 Agent，只读巡检，输出项目画像、缺失字段和异常信号。
+- RiskAnalysisAgent：风险识别 Agent，生成风险候选、风险等级、触发原因、证据和建议动作。
+- FollowUpAgent：追问 Agent，生成具体追问内容。
+- WeeklyReportAgent：周报 Agent，生成管理层周报草稿。

@@ -1,0 +1,32 @@
+---
+description: Pydantic v2 schema placement and traceability rules for Agent Runtime
+globs: ["src/agent_runtime/**/*.py"]
+alwaysApply: false
+---
+
+# Schema Design
+
+所有 Agent Runtime 数据结构必须使用 Pydantic v2 BaseModel。数据结构文件只定义模型、枚举和类型，不实现 Feishu API、LLM 或 Tool 调用逻辑。
+
+文件分工：
+1. `src/agent_runtime/enums.py`：统一枚举。
+2. `src/agent_runtime/base_refs.py`：Base 记录引用、字段引用、证据引用。
+3. `src/agent_runtime/events.py`：触发事件结构。
+4. `src/agent_runtime/config.py`：AgentConfig、ToolPolicy、WritePolicy、HookPolicy、ModelConfig。
+5. `src/agent_runtime/session.py`：AgentSession、AgentStepRecord、ToolCallRecord、LLMCallRecord、RuntimeErrorInfo。
+6. `src/agent_runtime/project_state.py`：ProjectManifest、TableManifest、FieldManifest、ProjectMember。
+7. `src/agent_runtime/quality_gate.py`：QualityGateRequest、QualityGateResult、QualityCheckItem。
+8. `src/agent_runtime/agent_runs.py`：AgentRunRecord。
+9. `src/agent_runtime/agent_io.py`：各 Agent 输入输出结构。
+
+可追踪要求：
+1. schema 中必须包含 run_id、project_id、agent_name、evidence_refs。
+2. AgentSession / AgentRuns 必须能记录 trigger_type、input_records、output_records、tool_calls、llm_calls、errors 和 status。
+3. EvidenceRef 必须能追溯到 table_name、record_id、field_name 和 value_snapshot。
+4. 风险、追问、周报、写回建议必须有 idempotency_key 或可派生幂等键。
+
+建模规则：
+1. 不要用 `dict[str, Any]` 替代核心业务结构。
+2. `dict[str, Any]` 只允许用于 metadata、raw_payload、工具原始返回等非核心字段。
+3. 核心业务状态必须能从 Base 记录和 evidence_refs 回溯。
+4. schema 不负责决定业务写回是否执行，写回必须交给 Coordinator + QualityGate 流程。
