@@ -24,7 +24,7 @@ from agent_runtime.agent_io import (
     WeeklyReportOutput,
     WeeklyReportSection,
 )
-from agent_runtime.base_refs import OutputRecordRef
+from agent_runtime.base_refs import EvidenceRef, OutputRecordRef, RecordCreate
 from agent_runtime.enums import (
     ActionType,
     AgentName,

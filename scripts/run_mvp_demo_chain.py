@@ -1,4 +1,4 @@
-"""MVP demo: project_secretary → risk_analysis → followup → weekly_report → coordinator (optional write)."""
+﻿"""MVP demo: project_secretary -> risk_analysis -> followup -> weekly_report -> coordinator (optional write)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,15 @@ _SRC = _ROOT / "src"
 if _SRC.is_dir() and str(_SRC.resolve()) not in sys.path:
     sys.path.insert(0, str(_SRC.resolve()))
 
+# Work around noisy ProactorEventLoop shutdown traces on Windows (Python 3.13).
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# Load .env as early as possible so modules that read env at import-time can see it.
+from tool_integration.loader import load_dotenv_if_present  # noqa: E402
+
+load_dotenv_if_present(_ROOT)
+
 def _ensure_runtime_deps() -> None:
     """Fail fast with a clear hint when ``pip`` and ``python`` are different interpreters."""
 
@@ -26,20 +35,16 @@ def _ensure_runtime_deps() -> None:
     if not missing:
         return
 
+    print("Current interpreter cannot import project dependencies (often because `pip` installed into a different Python than this script uses).\n", file=sys.stderr, flush=True)
+    print(f"  Python executable: {sys.executable}", file=sys.stderr, flush=True)
+    print(f"  Version: {sys.version.splitlines()[0]}", file=sys.stderr, flush=True)
+    print(f"  缂哄け妯″潡: {', '.join(missing)}\n", file=sys.stderr, flush=True)
     print(
-        "当前解释器无法导入项目依赖（常见原因：``pip`` 装到了别的 Python，而本脚本用的是另一个 ``python``）。\n",
-        file=sys.stderr,
-        flush=True,
-    )
-    print(f"  本脚本使用的 Python: {sys.executable}", file=sys.stderr, flush=True)
-    print(f"  版本: {sys.version.splitlines()[0]}", file=sys.stderr, flush=True)
-    print(f"  缺失模块: {', '.join(missing)}\n", file=sys.stderr, flush=True)
-    print(
-        "请用**上面这一行**对应的 pip 安装依赖（保证 pip 与 python 一致），在仓库根目录执行：\n"
+        "璇风敤**涓婇潰杩欎竴琛?*瀵瑰簲鐨?pip 瀹夎渚濊禆锛堜繚璇?pip 涓?python 涓€鑷达級锛屽湪浠撳簱鏍圭洰褰曟墽琛岋細\n"
         f"  {sys.executable} -m pip install -r requirements.txt\n"
-        "或：\n"
+        "鎴栵細\n"
         f"  {sys.executable} -m pip install -e .\n"
-        "Windows 可检查：`where python`、`where pip` 是否指向同一安装目录。\n",
+        "Windows 鍙鏌ワ細`where python`銆乣where pip` 鏄惁鎸囧悜鍚屼竴瀹夎鐩綍銆俓n",
         file=sys.stderr,
         flush=True,
     )
@@ -59,9 +64,10 @@ from agent_runtime.agent_io import (  # noqa: E402
 from agent_runtime.base_refs import RecordCreate  # noqa: E402
 from agent_runtime.enums import AgentName, BaseTableName, EventType, TriggerType  # noqa: E402
 from agent_runtime.events import AgentCallRequest, AgentTriggerEvent  # noqa: E402
+from agent_runtime.loaders import load_project_manifest  # noqa: E402
 from agent_runtime.mvp.builder import build_runtime_with_tool_integration  # noqa: E402
 from agent_runtime.mvp.project_env import feishu_demo_chain_env_missing  # noqa: E402
-from tool_integration.loader import load_dotenv_if_present  # noqa: E402
+from feishu_adapter.feishu_client import feishu_request  # noqa: E402
 
 
 def _memory_output(session: object, agent: AgentName) -> dict | None:
@@ -70,6 +76,26 @@ def _memory_output(session: object, agent: AgentName) -> dict | None:
         if getattr(item, "key", None) == key:
             return item.value  # type: ignore[no-any-return]
     return None
+
+
+def _first_writable_field_name(app_token: str, table_id: str) -> str:
+    data = feishu_request(
+        "GET",
+        f"/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/fields",
+        queries={"page_size": 100},
+    )
+    items = data.get("items", [])
+    if not isinstance(items, list):
+        return ""
+    auto_types = {1001, 1002, 1003, 1004, 1005}
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        name = it.get("field_name")
+        ftype = int(it.get("type", 0))
+        if isinstance(name, str) and name and ftype not in auto_types:
+            return name
+    return ""
 
 
 async def _run() -> int:
@@ -85,12 +111,11 @@ async def _run() -> int:
     load_dotenv_if_present(_ROOT)
     missing = feishu_demo_chain_env_missing(_ROOT)
     if missing:
-        print("无法启动 MVP 链路：缺少以下环境变量（请配置后重试）：", flush=True)
+        print("Cannot start MVP chain: missing required environment variables:", flush=True)
         for name in missing:
             print(f"  - {name}", flush=True)
         print(
-            "\n提示：至少需要 FEISHU_APP_ID、FEISHU_APP_SECRET，"
-            "以及 project_state / table_manifest 中引用的 FEISHU_BASE_APP_TOKEN、各 FEISHU_TABLE_*。",
+            "\nHint: provide FEISHU_APP_ID, FEISHU_APP_SECRET, and all FEISHU_BASE_APP_TOKEN/FEISHU_TABLE_* referenced by project manifests.",
             flush=True,
         )
         return 2
@@ -127,7 +152,7 @@ async def _run() -> int:
 
         raw_ps = _memory_output(session, AgentName.PROJECT_SECRETARY)
         if not raw_ps:
-            print("未找到 project_secretary 输出", flush=True)
+            print("project_secretary output not found", flush=True)
             return 1
         project_state = ProjectStateOutput.model_validate(raw_ps)
 
@@ -195,20 +220,23 @@ async def _run() -> int:
 
         coord_payload: dict = {}
         if not args.skip_coordinator_write:
+            manifest = load_project_manifest(_ROOT / "projects" / args.project_id)
+            agent_runs = manifest.tables[BaseTableName.AGENT_RUNS]
+            field_names = [f.field_name for f in agent_runs.fields]
+            run_id_field = _first_writable_field_name(manifest.base_app_token, agent_runs.table_id) or agent_runs.primary_key_field or (field_names[0] if field_names else "run_id")
+            fields: dict[str, str] = {run_id_field: s4.run_id}
+            if len(field_names) > 1:
+                fields[field_names[1]] = args.project_id
             coord_payload = {
                 "proposed_creates": [
                     RecordCreate(
                         table_name=BaseTableName.AGENT_RUNS,
-                        fields={
-                            "运行 ID": s4.run_id,
-                            "项目": args.project_id,
-                        },
+                        fields=fields,
                         idempotency_key=f"agent_run_{s4.run_id}",
                         reason="mvp_demo_chain_agent_run_log",
                     ).model_dump(mode="json")
                 ]
             }
-
         coord_req = AgentCallRequest(
             agent_name=AgentName.COORDINATOR,
             event=event,
@@ -237,3 +265,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

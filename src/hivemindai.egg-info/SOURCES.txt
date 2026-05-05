@@ -1,4 +1,6 @@
+README.md
 pyproject.toml
+projects/enterprise_rag/PROJECT.md
 projects/enterprise_rag/PROJECT.md
 src/agent_runtime/__init__.py
 src/agent_runtime/agent_io.py
