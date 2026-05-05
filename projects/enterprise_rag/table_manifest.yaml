@@ -1,0 +1,138 @@
+tables:
+  Projects:
+    display_name: 项目表
+    table_id: "${FEISHU_TABLE_PROJECTS}"
+    view_id: null
+    description: 存储项目整体状态、负责人、优先级、健康度、风险等级和最新周报链接。
+    primary_key_field: 项目名称
+    fields:
+      - field_name: 项目名称
+        field_type: text
+        required: true
+        write_allowed: false
+      - field_name: 项目负责人
+        field_type: user
+        required: true
+        write_allowed: false
+      - field_name: 项目状态
+        field_type: single_select
+        required: true
+        enum_values: [未开始, 进行中, 阻塞, 已延期, 已完成]
+        write_allowed: true
+      - field_name: 项目优先级
+        field_type: single_select
+        required: true
+        enum_values: [P0, P1, P2]
+        write_allowed: false
+      - field_name: 当前健康度
+        field_type: single_select
+        required: true
+        enum_values: [健康, 关注, 风险, 严重风险]
+        write_allowed: true
+      - field_name: 当前风险等级
+        field_type: single_select
+        required: true
+        enum_values: [低, 中, 高]
+        write_allowed: true
+      - field_name: 本周关键进展
+        field_type: text
+        required: false
+        write_allowed: true
+      - field_name: 最新周报链接
+        field_type: url
+        required: false
+        write_allowed: true
+
+  Tasks:
+    display_name: 任务表
+    table_id: "${FEISHU_TABLE_TASKS}"
+    view_id: null
+    description: 存储项目任务、负责人、状态、优先级、截止时间、依赖、阻塞说明、风险标记和 Agent 摘要。
+    primary_key_field: 任务名称
+    fields:
+      - field_name: 任务名称
+        field_type: text
+        required: true
+        write_allowed: false
+      - field_name: 所属项目
+        field_type: link
+        required: true
+        write_allowed: false
+      - field_name: 负责人
+        field_type: user
+        required: true
+        write_allowed: false
+      - field_name: 角色类型
+        field_type: single_select
+        required: true
+        enum_values: [产品, 前端, 后端, 算法, 测试, 项目经理]
+        write_allowed: false
+      - field_name: 状态
+        field_type: single_select
+        required: true
+        enum_values: [未开始, 进行中, 阻塞, 待验收, 已完成]
+        write_allowed: true
+      - field_name: 截止时间
+        field_type: date
+        required: true
+        write_allowed: false
+      - field_name: 最近更新时间
+        field_type: date
+        required: true
+        write_allowed: true
+      - field_name: 阻塞说明
+        field_type: text
+        required: false
+        write_allowed: true
+      - field_name: 是否需要追问
+        field_type: checkbox
+        required: false
+        write_allowed: true
+      - field_name: 风险标记
+        field_type: text
+        required: false
+        write_allowed: true
+      - field_name: Agent 处理摘要
+        field_type: text
+        required: false
+        write_allowed: true
+
+  Milestones:
+    display_name: 里程碑表
+    table_id: "${FEISHU_TABLE_MILESTONES}"
+    view_id: null
+    description: 存储里程碑计划日期、实际日期、状态、延期天数、依赖说明和风险标记。
+    primary_key_field: 里程碑名称
+    fields: []
+
+  Risks:
+    display_name: 风险问题表
+    table_id: "${FEISHU_TABLE_RISKS}"
+    view_id: null
+    description: 存储风险标题、类型、等级、触发原因、责任人、建议动作、证据来源和状态。
+    primary_key_field: 风险标题
+    fields: []
+
+  FollowUps:
+    display_name: 追问记录表
+    table_id: "${FEISHU_TABLE_FOLLOWUPS}"
+    view_id: null
+    description: 存储追问对象、追问原因、追问内容、回复内容和回写状态。
+    primary_key_field: 追问标题
+    fields: []
+
+  WeeklyReports:
+    display_name: 周报表
+    table_id: "${FEISHU_TABLE_WEEKLY_REPORTS}"
+    view_id: null
+    description: 存储周期、项目摘要、本周进展、风险摘要、阻塞项、下周计划、决策建议和文档链接。
+    primary_key_field: 周期
+    fields: []
+
+  AgentRuns:
+    display_name: Agent 运行日志表
+    table_id: "${FEISHU_TABLE_AGENT_RUNS}"
+    view_id: null
+    description: 存储每次 Agent 运行的输入、输出、判断依据、执行状态、错误信息和时间。
+    primary_key_field: 运行 ID
+    fields: []

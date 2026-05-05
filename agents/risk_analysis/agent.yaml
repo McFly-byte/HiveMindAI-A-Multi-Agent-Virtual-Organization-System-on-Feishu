@@ -1,0 +1,50 @@
+agent_name: risk_analysis
+role: risk_analyst
+display_name: 风险识别 Agent
+description: 基于项目画像、异常信号、历史风险和追问状态生成风险候选、风险等级和建议动作。
+workspace_path: agents/risk_analysis
+prompt:
+  agent_md_path: agents/risk_analysis/AGENT.md
+  shared_prompt_paths:
+    - prompts/shared/output_rules.md
+    - prompts/shared/evidence_rules.md
+    - prompts/shared/no_hallucination_rules.md
+  output_schema_name: RiskAnalysisOutput
+  prompt_version: v1
+model:
+  provider: deepseek
+  model_name: deepseek-chat
+  temperature: 0.15
+  max_tokens: 4096
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 5
+  max_tool_calls: 16
+  max_llm_calls: 3
+  timeout_seconds: 180
+  max_retries: 2
+tool_policy:
+  allowed_tools:
+    - feishu_bitable_search_records
+    - trace_tool
+  denied_tools:
+    - feishu_bitable_create_record
+    - feishu_bitable_update_record
+    - feishu_bitable_batch_create_records
+    - feishu_bitable_batch_update_records
+  default_permission: read_only
+  write_tools_require_quality_gate: true
+write_policy:
+  can_write_base: false
+  writable_tables: []
+  require_quality_gate: true
+  require_idempotency_key: true
+  allow_direct_message_send: false
+hook_policy:
+  final_verify_hooks:
+    - risk_candidate_schema_check
+    - risk_evidence_check
+    - risk_level_enum_check
+input_schema: RiskAnalysisInput
+output_schema: RiskAnalysisOutput
