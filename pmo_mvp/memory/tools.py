@@ -24,6 +24,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "run_id":      {"type": "string"},
                 "project_id":  {"type": "string"},
                 "tags":        {"type": "array", "items": {"type": "string"}},
+                "importance":  {"type": "number", "default": 1.0},
+                "confidence":  {"type": "number", "default": 1.0},
+                "expires_at":  {"type": "string"},
+                "metadata":    {"type": "object"},
             },
         },
     },
@@ -42,6 +46,7 @@ TOOL_SCHEMAS: list[dict] = [
                 "memory_type": {"type": "string", "enum": ["episodic", "reflective", "procedural", "all"]},
                 "agent_id":    {"type": "string"},
                 "project_id":  {"type": "string"},
+                "run_id":      {"type": "string"},
                 "since":       {"type": "string", "description": "ISO timestamp; only memories created at or after this point"},
             },
         },
@@ -74,6 +79,171 @@ TOOL_SCHEMAS: list[dict] = [
         },
     },
     {
+        "name": "profile_write",
+        "description": "Write point memory to an agent AGENT.md or project PROJECT.md file.",
+        "input_schema": {
+            "type": "object",
+            "required": ["profile_type", "owner_id", "content"],
+            "properties": {
+                "profile_type": {"type": "string", "enum": ["agent", "project"]},
+                "owner_id":     {"type": "string"},
+                "content":      {"type": "string"},
+                "overwrite":    {"type": "boolean", "default": True},
+            },
+        },
+    },
+    {
+        "name": "profile_read",
+        "description": "Read point memory from an agent AGENT.md or project PROJECT.md file.",
+        "input_schema": {
+            "type": "object",
+            "required": ["profile_type", "owner_id"],
+            "properties": {
+                "profile_type": {"type": "string", "enum": ["agent", "project"]},
+                "owner_id":     {"type": "string"},
+            },
+        },
+    },
+    {
+        "name": "session_start",
+        "description": "Start a short-term AgentSession for one agent run.",
+        "input_schema": {
+            "type": "object",
+            "required": ["agent_id"],
+            "properties": {
+                "agent_id":      {"type": "string"},
+                "run_id":        {"type": "string"},
+                "project_id":    {"type": "string"},
+                "input_summary": {"type": "string"},
+                "scratchpad":    {"type": "string"},
+                "metadata":      {"type": "object"},
+            },
+        },
+    },
+    {
+        "name": "session_finish",
+        "description": "Finish an AgentSession and persist its output summary.",
+        "input_schema": {
+            "type": "object",
+            "required": ["run_id"],
+            "properties": {
+                "run_id":         {"type": "string"},
+                "status":         {"type": "string", "enum": ["completed", "failed", "cancelled", "running"], "default": "completed"},
+                "output_summary": {"type": "string"},
+                "scratchpad":     {"type": "string"},
+                "metadata":       {"type": "object"},
+            },
+        },
+    },
+    {
+        "name": "session_get",
+        "description": "Get a short-term AgentSession by run_id.",
+        "input_schema": {
+            "type": "object",
+            "required": ["run_id"],
+            "properties": {"run_id": {"type": "string"}},
+        },
+    },
+    {
+        "name": "session_list",
+        "description": "List recent AgentSessions by project_id, agent_id, or status.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id": {"type": "string"},
+                "agent_id":   {"type": "string"},
+                "status":     {"type": "string"},
+                "limit":      {"type": "integer", "default": 50},
+            },
+        },
+    },
+    {
+        "name": "process_log",
+        "description": "Append a project-bound process event for audit and run traceability.",
+        "input_schema": {
+            "type": "object",
+            "required": ["event_type", "message"],
+            "properties": {
+                "event_type": {"type": "string"},
+                "message":    {"type": "string"},
+                "project_id": {"type": "string"},
+                "agent_id":   {"type": "string"},
+                "run_id":     {"type": "string"},
+                "payload":    {"type": "object"},
+            },
+        },
+    },
+    {
+        "name": "process_search",
+        "description": "Search or list process events by project_id, agent_id, run_id, event_type, query, and since.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id": {"type": "string"},
+                "agent_id":   {"type": "string"},
+                "run_id":     {"type": "string"},
+                "event_type": {"type": "string"},
+                "query":      {"type": "string"},
+                "since":      {"type": "string"},
+                "limit":      {"type": "integer", "default": 100},
+            },
+        },
+    },
+    {
+        "name": "project_context_upsert",
+        "description": "Upsert project profile content, members, and artifacts for process memory.",
+        "input_schema": {
+            "type": "object",
+            "required": ["project_id"],
+            "properties": {
+                "project_id":      {"type": "string"},
+                "profile_content": {"type": "string"},
+                "members":         {"type": "array", "items": {"type": "object"}},
+                "artifacts":       {"type": "array", "items": {"type": "object"}},
+            },
+        },
+    },
+    {
+        "name": "project_context_get",
+        "description": "Get a project's PROJECT.md, members, artifacts, and recent process events.",
+        "input_schema": {
+            "type": "object",
+            "required": ["project_id"],
+            "properties": {"project_id": {"type": "string"}},
+        },
+    },
+    {
+        "name": "memory_weight_update",
+        "description": "Update importance, confidence, expiry, or metadata for a long-term memory.",
+        "input_schema": {
+            "type": "object",
+            "required": ["memory_id"],
+            "properties": {
+                "memory_id":  {"type": "string"},
+                "importance": {"type": "number"},
+                "confidence": {"type": "number"},
+                "expires_at": {"type": "string"},
+                "metadata":   {"type": "object"},
+            },
+        },
+    },
+    {
+        "name": "memory_evict",
+        "description": "Evict expired, low-importance, or over-budget long-term memories in a scope.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "project_id":      {"type": "string"},
+                "agent_id":        {"type": "string"},
+                "run_id":          {"type": "string"},
+                "memory_type":     {"type": "string", "enum": ["episodic", "reflective", "procedural", "all"]},
+                "now":             {"type": "string"},
+                "min_importance":  {"type": "number"},
+                "max_records":     {"type": "integer"},
+            },
+        },
+    },
+    {
         "name": "doc_ingest",
         "description": (
             "Ingest a user-uploaded document into the knowledge base. Reads the file, "
@@ -86,6 +256,9 @@ TOOL_SCHEMAS: list[dict] = [
                 "file_path":   {"type": "string"},
                 "source_type": {"type": "string", "enum": ["knowledge", "instruction", "domain_data"]},
                 "corpus_id":   {"type": "string"},
+                "project_id":  {"type": "string"},
+                "agent_id":    {"type": "string"},
+                "run_id":      {"type": "string"},
                 "uploaded_by": {"type": "string"},
                 "metadata":    {"type": "object"},
             },
@@ -101,6 +274,9 @@ TOOL_SCHEMAS: list[dict] = [
                 "query":       {"type": "string"},
                 "top_k":       {"type": "integer", "default": 5},
                 "corpus_id":   {"type": "string"},
+                "project_id":  {"type": "string"},
+                "agent_id":    {"type": "string"},
+                "run_id":      {"type": "string"},
                 "source_type": {"type": "string", "enum": ["knowledge", "instruction", "domain_data", "all"]},
             },
         },
@@ -142,6 +318,18 @@ class MemoryToolset:
             "memory_search": self._memory_search,
             "memory_get": self._memory_get,
             "memory_reflect": self._memory_reflect,
+            "profile_write": self._profile_write,
+            "profile_read": self._profile_read,
+            "session_start": self._session_start,
+            "session_finish": self._session_finish,
+            "session_get": self._session_get,
+            "session_list": self._session_list,
+            "process_log": self._process_log,
+            "process_search": self._process_search,
+            "project_context_upsert": self._project_context_upsert,
+            "project_context_get": self._project_context_get,
+            "memory_weight_update": self._memory_weight_update,
+            "memory_evict": self._memory_evict,
             "doc_ingest": self._doc_ingest,
             "doc_search": self._doc_search,
         }
@@ -170,6 +358,10 @@ class MemoryToolset:
             run_id=args.get("run_id"),
             project_id=args.get("project_id"),
             tags=args.get("tags"),
+            importance=args.get("importance", 1.0),
+            confidence=args.get("confidence", 1.0),
+            expires_at=args.get("expires_at"),
+            metadata=args.get("metadata"),
         )
         return record.to_dict()
 
@@ -180,6 +372,7 @@ class MemoryToolset:
             memory_type=args.get("memory_type"),
             agent_id=args.get("agent_id"),
             project_id=args.get("project_id"),
+            run_id=args.get("run_id"),
             since=args.get("since"),
         )
         return {"count": len(results), "results": [r.to_dict() for r in results]}
@@ -209,14 +402,140 @@ class MemoryToolset:
             memory_type="reflective",
             project_id=project_id,
             tags=["reflection", topic],
+            importance=args.get("importance", 1.0),
+            metadata={"source": "memory_reflect", "source_count": len(episode_dicts)},
         )
         return {"reflection": record.to_dict(), "source_count": len(episode_dicts)}
+
+    def _profile_write(self, args: dict) -> dict:
+        if args["profile_type"] == "agent":
+            record = self.store.write_agent_prompt(
+                agent_id=args["owner_id"],
+                content=args["content"],
+                overwrite=args.get("overwrite", True),
+            )
+        else:
+            record = self.store.write_project_profile(
+                project_id=args["owner_id"],
+                content=args["content"],
+                overwrite=args.get("overwrite", True),
+            )
+        return record.to_dict()
+
+    def _profile_read(self, args: dict) -> dict:
+        if args["profile_type"] == "agent":
+            record = self.store.read_agent_prompt(args["owner_id"])
+        else:
+            record = self.store.read_project_profile(args["owner_id"])
+        return record.to_dict() if record else {"error": "not_found"}
+
+    def _session_start(self, args: dict) -> dict:
+        session = self.store.start_session(
+            agent_id=args["agent_id"],
+            run_id=args.get("run_id"),
+            project_id=args.get("project_id"),
+            input_summary=args.get("input_summary"),
+            scratchpad=args.get("scratchpad"),
+            metadata=args.get("metadata"),
+        )
+        return session.to_dict()
+
+    def _session_finish(self, args: dict) -> dict:
+        session = self.store.finish_session(
+            run_id=args["run_id"],
+            status=args.get("status", "completed"),
+            output_summary=args.get("output_summary"),
+            scratchpad=args.get("scratchpad"),
+            metadata=args.get("metadata"),
+        )
+        return session.to_dict()
+
+    def _session_get(self, args: dict) -> dict:
+        session = self.store.get_session(args["run_id"])
+        return session.to_dict() if session else {"error": "not_found"}
+
+    def _session_list(self, args: dict) -> dict:
+        sessions = self.store.list_sessions(
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            status=args.get("status"),
+            limit=args.get("limit", 50),
+        )
+        return {"count": len(sessions), "results": [item.to_dict() for item in sessions]}
+
+    def _process_log(self, args: dict) -> dict:
+        event = self.store.record_process_event(
+            event_type=args["event_type"],
+            message=args["message"],
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            run_id=args.get("run_id"),
+            payload=args.get("payload"),
+        )
+        return event.to_dict()
+
+    def _process_search(self, args: dict) -> dict:
+        events = self.store.list_process_events(
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            run_id=args.get("run_id"),
+            event_type=args.get("event_type"),
+            query=args.get("query"),
+            since=args.get("since"),
+            limit=args.get("limit", 100),
+        )
+        return {"count": len(events), "results": [item.to_dict() for item in events]}
+
+    def _project_context_upsert(self, args: dict) -> dict:
+        project_id = args["project_id"]
+        result: dict[str, Any] = {"project_id": project_id, "members": [], "artifacts": []}
+        if args.get("profile_content"):
+            result["profile"] = self.store.write_project_profile(
+                project_id=project_id, content=args["profile_content"]
+            ).to_dict()
+        for item in args.get("members") or []:
+            result["members"].append(
+                self.store.upsert_project_member(project_id=project_id, **item).to_dict()
+            )
+        for item in args.get("artifacts") or []:
+            result["artifacts"].append(
+                self.store.upsert_project_artifact(project_id=project_id, **item).to_dict()
+            )
+        return result
+
+    def _project_context_get(self, args: dict) -> dict:
+        return self.store.get_project_context(args["project_id"])
+
+    def _memory_weight_update(self, args: dict) -> dict:
+        record = self.store.update_memory_weight(
+            args["memory_id"],
+            importance=args.get("importance"),
+            confidence=args.get("confidence"),
+            expires_at=args.get("expires_at"),
+            metadata=args.get("metadata"),
+        )
+        return record.to_dict() if record else {"error": "not_found"}
+
+    def _memory_evict(self, args: dict) -> dict:
+        ids = self.store.evict_memories(
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            run_id=args.get("run_id"),
+            memory_type=args.get("memory_type"),
+            now=args.get("now"),
+            min_importance=args.get("min_importance"),
+            max_records=args.get("max_records"),
+        )
+        return {"count": len(ids), "deleted_ids": ids}
 
     def _doc_ingest(self, args: dict) -> dict:
         return self.store.ingest_document(
             file_path=Path(args["file_path"]),
             source_type=args["source_type"],
             corpus_id=args["corpus_id"],
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            run_id=args.get("run_id"),
             uploaded_by=args.get("uploaded_by"),
             metadata=args.get("metadata"),
         )
@@ -226,6 +545,9 @@ class MemoryToolset:
             query=args["query"],
             top_k=args.get("top_k", 5),
             corpus_id=args.get("corpus_id"),
+            project_id=args.get("project_id"),
+            agent_id=args.get("agent_id"),
+            run_id=args.get("run_id"),
             source_type=args.get("source_type"),
         )
         return {"count": len(results), "results": [r.to_dict() for r in results]}

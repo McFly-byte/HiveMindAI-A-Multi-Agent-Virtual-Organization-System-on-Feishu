@@ -25,9 +25,18 @@ class PMOCycleEngine:
         self.coordinator = ResourceCoordinatorAgent()
         self.reporter = WeeklyReportAgent()
         self.retrospective = RetrospectiveAgent()
+        self.agents = [
+            self.secretary,
+            self.risk,
+            self.follow_up,
+            self.coordinator,
+            self.reporter,
+            self.retrospective,
+        ]
 
     def run(self) -> dict:
         state = self.store.load()
+        self._bootstrap_memory(state)
         ctx = AgentContext(
             today=date.fromisoformat(state["meta"]["today"]),
             output_dir=self.output_dir,
@@ -41,6 +50,7 @@ class PMOCycleEngine:
         reports = self.reporter.run(state, ctx)
         retros = self.retrospective.run(state, ctx)
 
+        self._sync_project_context(state)
         self.store.save(state)
         return {
             "today": state["meta"]["today"],
@@ -54,3 +64,25 @@ class PMOCycleEngine:
             "output_dir": str(self.output_dir),
         }
 
+    def _bootstrap_memory(self, state: dict) -> None:
+        if self.memory is None:
+            return
+        try:
+            for agent in self.agents:
+                if hasattr(self.memory, "ensure_agent_prompt"):
+                    self.memory.ensure_agent_prompt(
+                        agent_id=agent.agent_name,
+                        content=agent.system_prompt,
+                    )
+            self._sync_project_context(state)
+        except Exception:
+            # Memory bootstrap should not prevent the PMO cycle from running.
+            pass
+
+    def _sync_project_context(self, state: dict) -> None:
+        if self.memory is None or not hasattr(self.memory, "sync_project_context"):
+            return
+        try:
+            self.memory.sync_project_context(state)
+        except Exception:
+            pass
