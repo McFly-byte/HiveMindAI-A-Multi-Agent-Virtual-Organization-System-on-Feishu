@@ -26,11 +26,9 @@ runtime_limits:
   max_retries: 2
 tool_policy:
   allowed_tools:
-    - agent_call_tool
-    - quality_gate_tool
-    - base_create_tool
-    - base_update_tool
-    - agent_run_log_tool
+    - feishu_bitable_search_records
+    - feishu_bitable_create_record
+    - feishu_bitable_update_record
     - trace_tool
   denied_tools: []
   default_permission: write_with_gate

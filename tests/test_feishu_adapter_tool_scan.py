@@ -58,14 +58,12 @@ def test_resolve_tool_scan_dirs_matches_param(
 
 
 def test_dotenv_resolve_matches_repo_default_layout(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Use the real ``.env`` at project root (no override): must list ``src/feishu_adapter``."""
+    """When env is unset, prefer existing ``src/feishu_adapter`` + ``tool_integrations`` under the repo."""
     monkeypatch.delenv(TOOL_SCAN_DIRS_ENV, raising=False)
     load_dotenv_if_present(_PROJECT_ROOT)
     dirs = resolve_tool_scan_dirs(_PROJECT_ROOT, None)
-    assert dirs == ["src/feishu_adapter"], (
-        "Set HIVEMIND_TOOL_SCAN_DIRS=src/feishu_adapter in .env "
-        "(feishu code lives under src/, not repo-root feishu_adapter)."
-    )
+    assert "src/feishu_adapter" in dirs
+    assert "tool_integrations" in dirs
 
 
 def test_full_chain_dotenv_directories_scan_registers_tools(monkeypatch: pytest.MonkeyPatch) -> None:

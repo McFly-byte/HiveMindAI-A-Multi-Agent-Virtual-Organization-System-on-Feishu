@@ -26,14 +26,13 @@ runtime_limits:
   max_retries: 2
 tool_policy:
   allowed_tools:
-    - base_query_tool
-    - risk_rule_tool
-    - risk_dedup_tool
-    - metric_calculator_tool
+    - feishu_bitable_search_records
     - trace_tool
   denied_tools:
-    - base_create_tool
-    - base_update_tool
+    - feishu_bitable_create_record
+    - feishu_bitable_update_record
+    - feishu_bitable_batch_create_records
+    - feishu_bitable_batch_update_records
   default_permission: read_only
   write_tools_require_quality_gate: true
 write_policy:

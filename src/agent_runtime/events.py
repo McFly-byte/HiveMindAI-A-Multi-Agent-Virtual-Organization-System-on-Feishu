@@ -41,4 +41,5 @@ class AgentCallRequest(BaseModel):
     agent_name: AgentName
     event: AgentTriggerEvent
     reason: str
+    input_payload: Any | None = None
     input_payload_ref: str | None = None

@@ -55,7 +55,11 @@ def resolve_tool_scan_dirs(base_dir: Path, override: list[str] | None = None) ->
         return list(override)
     raw = os.environ.get(TOOL_SCAN_DIRS_ENV, "").strip()
     if not raw:
-        return ["tool_integrations"]
+        segments: list[str] = []
+        for seg in ("src/feishu_adapter", "tool_integrations"):
+            if (base_dir / seg).is_dir():
+                segments.append(seg)
+        return segments if segments else ["tool_integrations"]
     return [segment.strip() for segment in raw.split(",") if segment.strip()]
 
 

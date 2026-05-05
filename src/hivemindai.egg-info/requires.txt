@@ -1,0 +1,6 @@
+pydantic>=2.5.0
+PyYAML>=6.0
+lark-oapi>=1.4.0
+
+[dev]
+pytest>=7.0

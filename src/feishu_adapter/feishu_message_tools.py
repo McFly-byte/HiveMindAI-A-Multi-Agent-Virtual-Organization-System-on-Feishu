@@ -109,7 +109,10 @@ def _start_im_listener(lark: Any, event_bus: EventBus):
 
 
 def register(registry: ToolRegistry, event_bus: EventBus | None = None):
-    if event_bus is not None:
+    # WebSocket 长连接会在独立线程里跑 asyncio，与 ``asyncio.run()`` 主链路冲突（报 event loop is already running）。
+    # MVP / 批处理场景默认不启动；需要 IM 事件流时再设置 FEISHU_ENABLE_IM_WS=1。
+    ws_on = os.environ.get("FEISHU_ENABLE_IM_WS", "").strip().lower() in ("1", "true", "yes")
+    if event_bus is not None and ws_on:
         try:
             lark, _ = _get_lark_and_client()
             _start_im_listener(lark, event_bus)

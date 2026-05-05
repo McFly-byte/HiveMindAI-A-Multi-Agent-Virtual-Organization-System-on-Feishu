@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -34,47 +35,50 @@ def _session(agent: AgentName) -> AgentSession:
     )
 
 
-@pytest.mark.asyncio
-async def test_denied_tool_raises_before_invoke() -> None:
-    rt = MagicMock()
+def test_denied_tool_raises_before_invoke() -> None:
+    async def _run() -> None:
+        rt = MagicMock()
 
-    exe = ToolIntegrationExecutor(
-        _runtime_secretary(),
-        Path("."),
-        tool_runtime=rt,  # type: ignore[arg-type]
-    )
-    session = _session(AgentName.PROJECT_SECRETARY)
+        exe = ToolIntegrationExecutor(
+            _runtime_secretary(),
+            Path("."),
+            tool_runtime=rt,  # type: ignore[arg-type]
+        )
+        session = _session(AgentName.PROJECT_SECRETARY)
 
-    with pytest.raises(AgentRuntimeError, match="denied"):
-        await exe.call_tool("base_create_tool", {}, session)
+        with pytest.raises(AgentRuntimeError, match="denied"):
+            await exe.call_tool("feishu_bitable_create_record", {}, session)
 
-    rt.invoke.assert_not_called()
+        rt.invoke.assert_not_called()
+
+    asyncio.run(_run())
 
 
-@pytest.mark.asyncio
-async def test_allowed_tool_calls_runtime_and_records_step() -> None:
-    rt = MagicMock()
+def test_allowed_tool_calls_runtime_and_records_step() -> None:
+    async def _run() -> None:
+        rt = MagicMock()
 
-    rt.invoke.return_value = {
-        "ok": True,
-        "tool": "agent_call_tool",
-        "call_id": "call_x",
-        "async": False,
-        "result": {"done": True},
-    }
+        rt.invoke.return_value = {
+            "ok": True,
+            "tool": "trace_tool",
+            "call_id": "call_x",
+            "async": False,
+            "result": {"ok": True, "echo": "x"},
+        }
 
-    exe = ToolIntegrationExecutor(
-        _runtime_coordinator(),
-        Path("."),
-        tool_runtime=rt,  # type: ignore[arg-type]
-    )
-    session = _session(AgentName.COORDINATOR)
+        exe = ToolIntegrationExecutor(
+            _runtime_coordinator(),
+            Path("."),
+            tool_runtime=rt,  # type: ignore[arg-type]
+        )
+        session = _session(AgentName.COORDINATOR)
 
-    out = await exe.call_tool("agent_call_tool", {"x": 1}, session)
+        out = await exe.call_tool("trace_tool", {"message": "x"}, session)
 
-    rt.invoke.assert_called_once_with("agent_call_tool", {"x": 1})
-    assert out["ok"] is True
-    assert session.steps[-1].step_type.value == "act"
-    assert session.steps[-1].tool_calls[0].tool_name == "agent_call_tool"
-    assert session.steps[-1].tool_calls[0].success is True
+        rt.invoke.assert_called_once_with("trace_tool", {"message": "x"})
+        assert out["ok"] is True
+        assert session.steps[-1].step_type.value == "act"
+        assert session.steps[-1].tool_calls[0].tool_name == "trace_tool"
+        assert session.steps[-1].tool_calls[0].success is True
 
+    asyncio.run(_run())

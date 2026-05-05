@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from pydantic import BaseModel
+
 from agent_runtime.config import RuntimeConfig
 from agent_runtime.enums import AgentRunStatus, ErrorType
 from agent_runtime.events import AgentCallRequest, AgentTriggerEvent
@@ -9,7 +11,7 @@ from agent_runtime.interfaces import (
     ToolExecutorProtocol,
     TraceSinkProtocol,
 )
-from agent_runtime.session import AgentSession, RuntimeErrorInfo
+from agent_runtime.session import AgentSession, RuntimeErrorInfo, SessionMemoryItem
 
 
 class AgentRuntime:
@@ -62,8 +64,19 @@ class AgentRuntime:
 
         try:
             await self.trace_sink.on_session_start(session)
-            output = await handler.run(session, request.input_payload_ref)
-            summary = getattr(output, "summary", None)
+            payload = request.input_payload
+            if payload is None:
+                payload = request.input_payload_ref
+            output = await handler.run(session, payload)
+            summary = getattr(output, "summary", None) or getattr(output, "stop_reason", None)
+            if isinstance(output, BaseModel):
+                session.memory.append(
+                    SessionMemoryItem(
+                        key=f"{session.agent_name}_output",
+                        value=output.model_dump(mode="json"),
+                        summary=summary,
+                    )
+                )
             session.mark_success(summary=summary)
             return session
         except Exception as exc:

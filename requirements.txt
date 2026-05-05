@@ -1,0 +1,7 @@
+# 最小运行依赖（与 pyproject.toml 对齐）。请用「将要运行脚本的同一个 python」安装，避免 pip/python 不一致：
+#   python -m pip install -r requirements.txt
+#   python -m pip install -e .
+# 若已安装 uv：uv sync
+pydantic>=2.5.0
+PyYAML>=6.0
+lark-oapi>=1.4.0

@@ -410,22 +410,26 @@ def test_scan_tool_dirs_under_feishu_adapter_path_registers_stub(tmp_path: Path)
 # Executor edge (AgentConfig missing)
 
 
-@pytest.mark.asyncio
-async def test_executor_raises_when_session_agent_not_in_runtime_config() -> None:
-    sec = load_agent_config(Path("agents/project_secretary/agent.yaml"))
-    runtime_config = RuntimeConfig(agents={sec.agent_name: sec})
-    rt = ToolRuntime(ToolRegistry(), EventBus())
+def test_executor_raises_when_session_agent_not_in_runtime_config() -> None:
+    import asyncio
 
-    exe = ToolIntegrationExecutor(runtime_config, Path("."), tool_runtime=rt)  # type: ignore[arg-type]
-    session = AgentSession(
-        session_id="s",
-        run_id="r",
-        project_id="p",
-        agent_name=AgentName.COORDINATOR,
-        trigger_type=TriggerType.MANUAL,
-    )
+    async def _run() -> None:
+        sec = load_agent_config(Path("agents/project_secretary/agent.yaml"))
+        runtime_config = RuntimeConfig(agents={sec.agent_name: sec})
+        rt = ToolRuntime(ToolRegistry(), EventBus())
 
-    with pytest.raises(AgentRuntimeError, match="No AgentConfig"):
-        await exe.call_tool("anything", {}, session)
+        exe = ToolIntegrationExecutor(runtime_config, Path("."), tool_runtime=rt)  # type: ignore[arg-type]
+        session = AgentSession(
+            session_id="s",
+            run_id="r",
+            project_id="p",
+            agent_name=AgentName.COORDINATOR,
+            trigger_type=TriggerType.MANUAL,
+        )
 
-    rt.shutdown()
+        with pytest.raises(AgentRuntimeError, match="No AgentConfig"):
+            await exe.call_tool("anything", {}, session)
+
+        rt.shutdown()
+
+    asyncio.run(_run())
