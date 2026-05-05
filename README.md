@@ -23,7 +23,7 @@ cp .env.example .env
 ## Local smoke test
 
 ```powershell
-uv run python run_local_smoke.py
+uv run tooltest feishuapi.spec.py
 ```
 
 ## CLI
@@ -51,6 +51,47 @@ Useful commands:
 /sources
 /history
 /quit
+```
+
+## Tool Integration
+
+Tool integration means wrapping an existing API/adaptor as a `ToolSpec` so the harness can register it, expose it to the LLM, and execute it through `ToolRuntime`.
+
+The current flow is:
+
+```text
+*.spec.py -> scan_tool_dirs() -> tools/*.py register() -> ToolRegistry -> LLM tools -> ToolRuntime.invoke()
+```
+
+To add or connect a tool:
+
+1. Put the implementation in a Python file under `tools/`.
+2. Add `def register(registry, event_bus=None):` in that file.
+3. Register each callable with `@registry.register(ToolSpec(...))`.
+4. Use the standard function signature:
+
+```python
+def my_tool(args: dict, ctx) -> dict:
+    ...
+```
+
+5. Keep registration side-effect free. Do not connect to Feishu, start websocket listeners, or call external APIs inside `register()`. Do that inside the tool function when it is actually invoked.
+6. Make sure the returned dict matches `output_schema`; otherwise `ToolRuntime` will mark the call as failed.
+7. Enable the toolset in `feishuapi.spec.py` or another spec via `agent.allowed_toolsets`.
+
+Example direct call that does not require Feishu network access:
+
+```text
+/call feishu_bitable_parse_url {"url":"https://example.feishu.cn/base/appABC123?table=tblXYZ&view=vew999"}
+```
+
+Useful verification commands:
+
+```text
+/toolsets
+/tools
+/alltools
+/call <tool_name> <json_args>
 ```
 
 ## DeepSeek / OpenAI-compatible

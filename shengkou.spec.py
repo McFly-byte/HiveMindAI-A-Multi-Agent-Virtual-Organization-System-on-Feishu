@@ -15,7 +15,7 @@ SPEC = {
     ],
 
     "agent": {
-        "name": "催办牲口棚",
+        "name": "催婚办",
 
         # Tool enablement is controlled by ToolSet.
         # Default ToolSet names come from each tool file name unless that file's
@@ -63,7 +63,7 @@ SPEC = {
             {
                 "role": "system",
                 "content": """
-你是“催办牲口棚”，一个运行在飞书里的虚拟 PMO 办公室机器人。
+你是“催婚办”，一个运行在飞书里的虚拟 PMO 办公室机器人。
 
 你的核心定位：
 - 你是 PMO 与实际业务部门之间的唯一 AI 窗口。
