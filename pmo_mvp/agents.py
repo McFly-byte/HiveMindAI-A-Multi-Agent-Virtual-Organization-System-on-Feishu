@@ -22,9 +22,11 @@ class AgentContext:
 
 class BaseAgent:
     agent_name = "base-agent"
+    system_prompt = "你是虚拟项目办公室中的基础 Agent，负责按职责处理项目治理任务并留下可追溯记录。"
 
     def log_run(self, state: dict, summary: dict, ctx: AgentContext | None = None) -> str:
         run_id = new_id("run")
+        episode = self._format_run_episode(summary)
         state["agent_runs"].append(
             {
                 "id": run_id,
@@ -35,14 +37,23 @@ class BaseAgent:
         )
         if ctx is not None and ctx.memory is not None:
             try:
-                ctx.memory.write_memory(
-                    content=self._format_run_episode(summary),
-                    agent_id=self.agent_name,
-                    memory_type="episodic",
-                    run_id=run_id,
-                    project_id=summary.get("project_id"),
-                    tags=[self.agent_name, "run_summary"],
-                )
+                if hasattr(ctx.memory, "record_agent_run"):
+                    ctx.memory.record_agent_run(
+                        agent_id=self.agent_name,
+                        summary=summary,
+                        content=episode,
+                        run_id=run_id,
+                        project_id=summary.get("project_id"),
+                    )
+                else:
+                    ctx.memory.write_memory(
+                        content=episode,
+                        agent_id=self.agent_name,
+                        memory_type="episodic",
+                        run_id=run_id,
+                        project_id=summary.get("project_id"),
+                        tags=[self.agent_name, "run_summary"],
+                    )
             except Exception:
                 # Memory is best-effort; agent execution must not fail because of it.
                 pass
@@ -59,6 +70,7 @@ class BaseAgent:
 
 class SecretaryAgent(BaseAgent):
     agent_name = "project-secretary"
+    system_prompt = "你是项目秘书 Agent，负责巡检任务、里程碑和会议纪要中的信息缺口，并生成可追问的问题线索。"
 
     def run(self, state: dict, ctx: AgentContext) -> list[dict]:
         findings: list[dict] = []
@@ -145,6 +157,7 @@ class SecretaryAgent(BaseAgent):
 
 class RiskAssessmentAgent(BaseAgent):
     agent_name = "risk-assessor"
+    system_prompt = "你是风险识别 Agent，负责把任务缺口、依赖阻塞和会议风险信号转化为项目风险、等级和建议动作。"
 
     def run(self, state: dict, ctx: AgentContext, findings: list[dict]) -> list[dict]:
         today = ctx.today.isoformat()
@@ -245,6 +258,7 @@ class RiskAssessmentAgent(BaseAgent):
 
 class FollowUpAgent(BaseAgent):
     agent_name = "follow-up-agent"
+    system_prompt = "你是追问 Agent，负责把信息缺口和高风险事项转化为面向责任人的具体追问。"
 
     def run(self, state: dict, ctx: AgentContext, findings: list[dict], risks: list[dict]) -> list[dict]:
         today = ctx.today.isoformat()
@@ -303,6 +317,7 @@ class FollowUpAgent(BaseAgent):
 
 class ResourceCoordinatorAgent(BaseAgent):
     agent_name = "resource-coordinator"
+    system_prompt = "你是资源协调 Agent，负责识别高风险项目中的负载瓶颈，并提出资源和优先级调整建议。"
 
     def run(self, state: dict, ctx: AgentContext, risks: list[dict]) -> list[dict]:
         today = ctx.today.isoformat()
@@ -355,6 +370,7 @@ class ResourceCoordinatorAgent(BaseAgent):
 
 class WeeklyReportAgent(BaseAgent):
     agent_name = "weekly-report-agent"
+    system_prompt = "你是周报 Agent，负责按项目生成结构化周报，覆盖进度、风险、追问和协调建议。"
 
     def run(self, state: dict, ctx: AgentContext) -> list[dict]:
         today = ctx.today.isoformat()
@@ -489,6 +505,7 @@ class WeeklyReportAgent(BaseAgent):
 
 class RetrospectiveAgent(BaseAgent):
     agent_name = "retrospective-agent"
+    system_prompt = "你是复盘 Agent，负责从已完成项目中提炼问题、风险回顾和可复用经验。"
 
     def run(self, state: dict, ctx: AgentContext) -> list[dict]:
         today = ctx.today.isoformat()
@@ -570,4 +587,3 @@ class RetrospectiveAgent(BaseAgent):
             ]
         )
         return "\n".join(lines) + "\n"
-
