@@ -266,3 +266,57 @@ class WeeklyReportOutput(AgentOutputBase):
 
     report: WeeklyReportDraft | None = None
     missing_required_sections: list[str] = Field(default_factory=list)
+
+
+class ResourceAdjustmentSuggestion(BaseModel):
+    """One coordination proposal (FR-05) produced by ResourceCoordination agent."""
+
+    title: str
+    suggestion_type: Literal["reprioritize", "reassign", "escalate", "milestone_split", "capacity"] = "capacity"
+    description: str
+    related_risk_titles: list[str] = Field(default_factory=list)
+    needs_management_decision: bool = False
+
+
+class ResourceCoordinationInput(BaseModel):
+    """Input for resource coordination Agent."""
+
+    run_id: str
+    project_id: str
+    project_state: ProjectStateOutput
+    risk_candidates: list[RiskCandidate] = Field(default_factory=list)
+
+
+class ResourceCoordinationOutput(AgentOutputBase):
+    """Resource / priority coordination output after risks are assessed."""
+
+    coordination_summary: str = ""
+    suggestions: list[ResourceAdjustmentSuggestion] = Field(default_factory=list)
+    escalation_items: list[str] = Field(default_factory=list)
+
+
+class RetrospectiveFinding(BaseModel):
+    """One structured retrospective finding."""
+
+    category: str
+    description: str
+    evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+
+
+class ProjectRetrospectiveInput(BaseModel):
+    """Input for project retrospective Agent (FR-08)."""
+
+    run_id: str
+    project_id: str
+    project_state: ProjectStateOutput | None = None
+    risk_history_note: str = ""
+    weekly_periods: list[str] = Field(default_factory=list)
+
+
+class ProjectRetrospectiveOutput(AgentOutputBase):
+    """Structured project retrospective report."""
+
+    executive_summary: str = ""
+    root_causes: list[RetrospectiveFinding] = Field(default_factory=list)
+    lessons_learned: list[str] = Field(default_factory=list)
+    governance_recommendations: list[str] = Field(default_factory=list)

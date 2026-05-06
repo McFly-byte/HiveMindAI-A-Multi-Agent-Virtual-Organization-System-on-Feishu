@@ -7,6 +7,8 @@ class AgentName(StrEnum):
     RISK_ANALYSIS = "risk_analysis"
     FOLLOWUP = "followup"
     WEEKLY_REPORT = "weekly_report"
+    RESOURCE_COORDINATION = "resource_coordination"
+    PROJECT_RETROSPECTIVE = "project_retrospective"
 
 
 class AgentRole(StrEnum):
