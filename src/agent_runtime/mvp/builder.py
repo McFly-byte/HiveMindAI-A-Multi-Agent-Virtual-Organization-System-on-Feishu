@@ -5,6 +5,7 @@ from typing import Any
 
 from agent_runtime.enums import AgentName, BaseTableName
 from agent_runtime.loaders import load_runtime_config
+from agent_runtime.memory.trace_sink import CompositeTraceSink, MemoryTraceSink
 from agent_runtime.runtime import AgentRuntime
 
 from tool_integration.executor import ToolIntegrationExecutor, build_tool_integration_executor
@@ -43,7 +44,12 @@ def build_runtime_with_tool_integration(
     quality_gate = SimpleRuleQualityGate(writable)
 
     trace_path = trace_dir if trace_dir is not None else (root / runtime_config.local_trace_dir)
-    trace_sink = LocalJsonlTraceSink(trace_path)
+    trace_sink = CompositeTraceSink(
+        [
+            LocalJsonlTraceSink(trace_path),
+            MemoryTraceSink(root / "runtime" / "memory.db"),
+        ]
+    )
 
     registry = MVPAgentRegistry(runtime_config, executor, root, quality_gate)
     runtime = AgentRuntime(runtime_config, registry, executor, quality_gate, trace_sink)

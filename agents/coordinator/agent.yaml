@@ -30,6 +30,19 @@ tool_policy:
     - feishu_bitable_create_record
     - feishu_bitable_update_record
     - trace_tool
+    - memory_search
+    - memory_write
+    - memory_reflect
+    - memory_weight_update
+    - memory_evict
+    - doc_ingest
+    - doc_search
+    - project_context_get
+    - project_context_upsert
+    - process_log
+    - process_search
+    - profile_read
+    - profile_write
   denied_tools: []
   default_permission: write_with_gate
   write_tools_require_quality_gate: true

@@ -1,5 +1,11 @@
 # PMO MVP
 
+> 当前合并后的正式运行时在 `src/agent_runtime/`，MVP 链路入口是
+> `scripts/run_mvp_demo_chain.py`。本 README 下方仍保留早期 `pmo_mvp/`
+> 本地 JSON demo 说明；合并后的真实项目结构请优先阅读
+> [`docs/开发指引.md`](docs/开发指引.md) 和
+> [`docs/当前项目结构与记忆分层.md`](docs/当前项目结构与记忆分层.md)。
+
 这是一个基于 [`虚拟项目办公室需求分析与Agent职责设计.md`](/Users/hyper/zenshot/zenshot/PMO/虚拟项目办公室需求分析与Agent职责设计.md) 落地的最小可运行项目。
 
 目标不是一次性做完整比赛交付，而是先跑通一个真实的多 Agent 项目治理闭环：
@@ -98,4 +104,3 @@ python3 run_demo.py show-state
 - 为什么先用本地 JSON：为了保证“最小可运行”
 - 为什么仍保留 Base 契约文件：为了后续接比赛真环境
 - 为什么用启发式而不是 LLM：为了先把协同闭环跑通
-

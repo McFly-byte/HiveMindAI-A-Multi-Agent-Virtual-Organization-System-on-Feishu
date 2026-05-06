@@ -27,6 +27,13 @@ tool_policy:
   allowed_tools:
     - feishu_bitable_search_records
     - trace_tool
+    - memory_search
+    - memory_write
+    - memory_reflect
+    - doc_search
+    - project_context_get
+    - process_log
+    - process_search
   denied_tools:
     - feishu_im_reply_text
     - feishu_bitable_create_record

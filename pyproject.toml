@@ -21,3 +21,6 @@ memory = ["mem0ai>=0.1.0"]
 [tool.setuptools.packages.find]
 where = ["src"]
 py-modules = []
+
+[tool.setuptools.package-data]
+"agent_runtime.memory" = ["schema.sql", "README.md"]
