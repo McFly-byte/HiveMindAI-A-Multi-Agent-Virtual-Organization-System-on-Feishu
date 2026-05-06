@@ -402,6 +402,60 @@ class BaseMvpHandler:
             path = self._root / "agents" / str(session.agent_name) / "AGENT.md"
             return path.read_text(encoding="utf-8") if path.is_file() else str(session.agent_name)
 
+    async def think(self, context: AgentContext, observation: dict[str, Any]) -> dict[str, Any]:
+        """Default business-agent THINK phase backed by the configured LLM tool."""
+
+        compact_context = context.render(max_chars=2600)
+        loop_state = context.loop_state
+        out = await self._llm_json(
+            context.session,
+            purpose=f"{context.session.agent_name}_think",
+            instruction=(
+                "你处在当前业务 Agent 的 THINK 阶段。请基于 observation、context 和 memory，"
+                "判断本轮 ACT 应重点处理什么。"
+                "必须输出 JSON："
+                "{\"decision\":\"invoke_handler\", \"reason\":\"一句中文判断\", "
+                "\"focus_items\":[\"重点1\"], \"expected_output\":\"本轮应产出的结构化结果\", "
+                "\"confidence\":0.0到1.0}。"
+                "不得要求直接写 Base；子 Agent 只能产出 proposed_creates/proposed_patches。"
+            ),
+            payload={
+                "agent_name": str(context.session.agent_name),
+                "project_id": context.session.project_id,
+                "observation": observation,
+                "context": compact_context,
+                "loop_iteration": loop_state.iteration if loop_state is not None else 0,
+            },
+            max_tokens=800,
+            temperature=0.0,
+            required=False,
+        )
+        if not out:
+            out = {
+                "decision": "invoke_handler",
+                "reason": "LLM 不可用，使用确定性 handler 继续执行",
+                "focus_items": [],
+                "expected_output": "按 Agent schema 输出结构化结果",
+                "confidence": 0.0,
+            }
+        else:
+            raw_decision = str(out.get("decision") or "").strip()
+            if raw_decision and raw_decision != "invoke_handler":
+                out["raw_decision"] = raw_decision
+            out["decision"] = "invoke_handler"
+        context.add_scratchpad("llm_thought", out)
+        return out
+
+    async def act(self, context: AgentContext, thought: dict[str, Any], input_payload: Any) -> Any:
+        context.add_scratchpad(
+            "act_from_thought",
+            {
+                "decision": thought.get("decision") if isinstance(thought, dict) else None,
+                "reason": thought.get("reason") if isinstance(thought, dict) else None,
+            },
+        )
+        return await self.run(context.session, input_payload)
+
     async def _llm_json(
         self,
         session: AgentSession,
@@ -492,6 +546,18 @@ class BaseMvpHandler:
                 )
 
         return result_json
+
+    def _llm_allowed(self, session: AgentSession) -> bool:
+        if _env_bool("HIVEMIND_LLM_DISABLED"):
+            return False
+        try:
+            config = self._agent_config(session)
+        except Exception:
+            return False
+        if "llm_chat_json" in config.tool_policy.denied_tools:
+            return False
+        allowed = config.tool_policy.allowed_tools
+        return not allowed or "llm_chat_json" in allowed
 
 
 class ProjectSecretaryHandler(BaseMvpHandler):
@@ -1080,6 +1146,8 @@ class RiskAnalysisHandler(BaseMvpHandler):
                 )
             )
 
+        candidates = await self._llm_refine_candidates(session, data, candidates)
+
         high_count = sum(1 for c in candidates if c.risk_level == RiskLevel.HIGH)
         medium_count = sum(1 for c in candidates if c.risk_level == RiskLevel.MEDIUM)
         if high_count:
@@ -1116,6 +1184,94 @@ class RiskAnalysisHandler(BaseMvpHandler):
             evidence_refs=evidence_refs,
             proposed_creates=proposed_creates,
         )
+
+    async def _llm_refine_candidates(
+        self,
+        session: AgentSession,
+        data: RiskAnalysisInput,
+        candidates: list[RiskCandidate],
+    ) -> list[RiskCandidate]:
+        if not candidates or not self._llm_allowed(session):
+            return candidates
+
+        out = await self._llm_json(
+            session,
+            purpose="risk_analysis_refine_candidates",
+            instruction=(
+                "你是风险识别 Agent。规则引擎已经基于 Base 事实生成风险候选。"
+                "请只在现有候选范围内优化风险标题、触发原因、风险等级、建议动作、是否需要追问。"
+                "不得新增风险、不得删除风险、不得改幂等键、不得编造 payload 中没有的事实。"
+                "必须输出 JSON："
+                "{\"risk_candidates\":[{\"idempotency_key\":\"原幂等键\","
+                "\"risk_title\":\"标题\", \"risk_level\":\"低|中|高\","
+                "\"trigger_reason\":\"基于证据的原因\","
+                "\"suggested_actions\":[\"动作\"], \"need_followup\":true,"
+                "\"followup_target_role\":\"项目经理或空\"}],"
+                "\"project_health\":\"健康|关注|风险|严重风险\","
+                "\"project_risk_level\":\"低|中|高\"}。"
+            ),
+            payload={
+                "project": data.project_state.project.model_dump(mode="json"),
+                "abnormal_signals": [sig.model_dump(mode="json") for sig in data.project_state.abnormal_signals],
+                "missing_fields": [mf.model_dump(mode="json") for mf in data.project_state.missing_fields],
+                "rule_candidates": [candidate.model_dump(mode="json") for candidate in candidates],
+            },
+            max_tokens=2200,
+            temperature=0.1,
+            required=False,
+        )
+        rows = out.get("risk_candidates") or out.get("risks") or []
+        if not isinstance(rows, list):
+            return candidates
+
+        by_key = {
+            str(row.get("idempotency_key") or ""): row
+            for row in rows
+            if isinstance(row, dict)
+        }
+        refined: list[RiskCandidate] = []
+        for candidate in candidates:
+            row = by_key.get(candidate.idempotency_key)
+            if not isinstance(row, dict):
+                refined.append(candidate)
+                continue
+
+            updates: dict[str, Any] = {}
+            title = str(row.get("risk_title") or "").strip()
+            if title:
+                updates["risk_title"] = title[:160]
+            reason = str(row.get("trigger_reason") or "").strip()
+            if reason:
+                updates["trigger_reason"] = reason[:900]
+            level = _parse_risk_level(str(row.get("risk_level") or ""))
+            if level is not None:
+                updates["risk_level"] = level
+            actions = _str_list(row.get("suggested_actions") or row.get("actions"))
+            if actions:
+                updates["suggested_actions"] = [action[:180] for action in actions[:5]]
+            if isinstance(row.get("need_followup"), bool):
+                updates["need_followup"] = bool(row["need_followup"])
+            target_role = str(row.get("followup_target_role") or "").strip()
+            if target_role:
+                updates["followup_target_role"] = target_role[:80]
+            responsible_owner = str(row.get("responsible_owner") or "").strip()
+            if responsible_owner:
+                updates["responsible_owner"] = responsible_owner[:80]
+            try:
+                confidence = float(row.get("confidence"))
+                if 0.0 <= confidence <= 1.0:
+                    updates["confidence"] = confidence
+            except (TypeError, ValueError):
+                pass
+
+            updated = candidate.model_copy(update=updates)
+            if updated.risk_level == RiskLevel.HIGH and not updated.suggested_actions:
+                updated = updated.model_copy(
+                    update={"suggested_actions": _suggest_actions(updated.risk_type, updated.risk_level)}
+                )
+            refined.append(updated)
+
+        return refined
 
 
 class FollowUpHandler(BaseMvpHandler):
@@ -1206,6 +1362,8 @@ class FollowUpHandler(BaseMvpHandler):
                 )
             )
 
+        requests = await self._llm_refine_followups(session, data, requests)
+
         proposed_creates = [_followup_create(request) for request in requests]
         summary = f"产出 {len(requests)} 条追问建议（跳过已存在幂等键 {len(existing_keys)} 个，只生成 proposed，不直接发消息）"
         return FollowUpOutput(
@@ -1217,6 +1375,72 @@ class FollowUpHandler(BaseMvpHandler):
             evidence_refs=[ev for req in requests for ev in req.evidence_refs],
             proposed_creates=proposed_creates,
         )
+
+    async def _llm_refine_followups(
+        self,
+        session: AgentSession,
+        data: FollowUpInput,
+        requests: list[FollowUpRequest],
+    ) -> list[FollowUpRequest]:
+        if not requests or not self._llm_allowed(session):
+            return requests
+
+        out = await self._llm_json(
+            session,
+            purpose="followup_refine_requests",
+            instruction=(
+                "你是追问 Agent。规则引擎已基于缺失字段和风险候选生成追问草稿。"
+                "请只改写现有追问的标题、问题列表和消息文本，让问题更具体、可回复、可闭环。"
+                "不得新增追问、不得删除追问、不得改目标人/目标角色/关联记录/幂等键，"
+                "不得要求直接发消息或直接写 Base。"
+                "必须输出 JSON："
+                "{\"followups\":[{\"idempotency_key\":\"原幂等键\","
+                "\"followup_title\":\"标题\", \"questions\":[\"问题\"],"
+                "\"message\":\"发送给责任人的完整追问文本\"}]}。"
+            ),
+            payload={
+                "missing_fields": [mf.model_dump(mode="json") for mf in data.missing_fields],
+                "risk_candidates": [risk.model_dump(mode="json") for risk in data.risk_candidates],
+                "rule_followups": [request.model_dump(mode="json") for request in requests],
+            },
+            max_tokens=2200,
+            temperature=0.2,
+            required=False,
+        )
+        rows = out.get("followups") or out.get("followup_requests") or []
+        if not isinstance(rows, list):
+            return requests
+
+        by_key = {
+            str(row.get("idempotency_key") or ""): row
+            for row in rows
+            if isinstance(row, dict)
+        }
+        refined: list[FollowUpRequest] = []
+        for request in requests:
+            row = by_key.get(request.idempotency_key)
+            if not isinstance(row, dict):
+                refined.append(request)
+                continue
+
+            updates: dict[str, Any] = {}
+            title = str(row.get("followup_title") or "").strip()
+            if title:
+                updates["followup_title"] = title[:160]
+            questions = _str_list(row.get("questions"))
+            if questions:
+                updates["questions"] = [question[:240] for question in questions[:5]]
+            message = str(row.get("message") or "").strip()
+            if message:
+                updates["message"] = message[:1200]
+            if "questions" in updates and "message" not in updates:
+                updates["message"] = "\n".join(updates["questions"])
+            if not updates:
+                refined.append(request)
+                continue
+            refined.append(request.model_copy(update=updates))
+
+        return refined
 
 
 class WeeklyReportHandler(BaseMvpHandler):
@@ -1346,6 +1570,8 @@ class WeeklyReportHandler(BaseMvpHandler):
             send_status=ReportSendStatus.DRAFT,
         )
 
+        report = await self._llm_refine_report(session, data, report)
+
         all_evidence = (
             report.progress.evidence_refs
             + report.risk_summary.evidence_refs
@@ -1376,6 +1602,64 @@ class WeeklyReportHandler(BaseMvpHandler):
             evidence_refs=all_evidence,
             proposed_creates=proposed_creates,
         )
+
+    async def _llm_refine_report(
+        self,
+        session: AgentSession,
+        data: WeeklyReportInput,
+        report: WeeklyReportDraft,
+    ) -> WeeklyReportDraft:
+        if not self._llm_allowed(session):
+            return report
+
+        out = await self._llm_json(
+            session,
+            purpose="weekly_report_refine_draft",
+            instruction=(
+                "你是周报 Agent。规则引擎已基于 Base 事实、风险候选和追问建议生成周报草稿。"
+                "请只润色和重组表达，让周报更像管理层 PMO 汇报。"
+                "不得添加 payload 中没有的事实、日期、进度、人名或结论。"
+                "必须保留结构，输出 JSON："
+                "{\"project_summary\":\"项目摘要\","
+                "\"progress\":[\"本周进展\"], \"risk_summary\":[\"风险摘要\"],"
+                "\"blockers\":[\"阻塞项\"], \"next_plan\":[\"下周计划\"],"
+                "\"decision_items\":[\"待拍板事项\"]}。"
+            ),
+            payload={
+                "period": data.period,
+                "project_state": data.project_state.model_dump(mode="json"),
+                "risks": [risk.model_dump(mode="json") for risk in data.risks],
+                "followups": [fu.model_dump(mode="json") for fu in data.followups],
+                "rule_report": report.model_dump(mode="json"),
+            },
+            max_tokens=2600,
+            temperature=0.2,
+            required=False,
+        )
+        if not out:
+            return report
+
+        updates: dict[str, Any] = {}
+        project_summary = str(out.get("project_summary") or "").strip()
+        if project_summary:
+            updates["project_summary"] = project_summary[:1200]
+
+        section_map = {
+            "progress": report.progress,
+            "risk_summary": report.risk_summary,
+            "blockers": report.blockers,
+            "next_plan": report.next_plan,
+            "decision_items": report.decision_items,
+        }
+        for key, section in section_map.items():
+            items = _str_list(out.get(key))
+            if not items:
+                continue
+            updates[key] = section.model_copy(update={"items": [item[:260] for item in items[:10]]})
+
+        if not updates:
+            return report
+        return report.model_copy(update=updates)
 
 
 def _str_list(value: Any) -> list[str]:

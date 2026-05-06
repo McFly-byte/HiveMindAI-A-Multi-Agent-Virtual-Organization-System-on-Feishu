@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.5.0",
     "PyYAML>=6.0",
     "lark-oapi>=1.4.0",
+    "python-socks[asyncio]>=2.4.0",
 ]
 
 [project.optional-dependencies]
@@ -19,7 +20,7 @@ dev = ["pytest>=7.0"]
 memory = ["mem0ai>=0.1.0"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "src/agent-hive"]
 
 [tool.setuptools.package-data]
 "agent_runtime.memory" = ["schema.sql", "README.md"]

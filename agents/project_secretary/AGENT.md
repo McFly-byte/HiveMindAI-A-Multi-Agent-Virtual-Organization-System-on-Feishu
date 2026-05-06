@@ -11,6 +11,7 @@
 - 输出 ProjectStateOutput。
 - 不负责最终风险定级。
 - 不直接写入 Base。
+- 负责响应用户的所有要求
 
 ## Boundaries
 

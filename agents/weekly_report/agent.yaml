@@ -1,57 +1,51 @@
-agent_name: weekly_report
-role: project_reporter
+agent_id: weekly_report
+role: business_agent
+entrypoint: llm_agent
 display_name: 周报 Agent
-description: 基于项目画像、风险候选和追问闭环情况生成管理层可读周报草稿。
+description: 基于项目画像、风险候选和追问闭环情况生成管理层可读周报草稿；Feishu 操作必须委托。
 workspace_path: agents/weekly_report
 prompt:
-  agent_md_path: agents/weekly_report/AGENT.md
-  shared_prompt_paths:
+  system: AGENT.md
+  shared:
     - prompts/shared/output_rules.md
     - prompts/shared/evidence_rules.md
     - prompts/shared/no_hallucination_rules.md
-  output_schema_name: WeeklyReportOutput
-  prompt_version: v1
 model:
   provider: deepseek
-  model_name: deepseek-chat
+  name: deepseek-chat
   temperature: 0.2
   max_tokens: 4096
   timeout_seconds: 60
   json_mode: true
 runtime_limits:
   max_steps: 4
-  max_tool_calls: 12
-  max_llm_calls: 2
+  max_child_runs: 4
   timeout_seconds: 180
   max_retries: 2
-tool_policy:
-  allowed_tools:
-    - feishu_bitable_search_records
-    - llm_chat_json
-    - trace_tool
-    - memory_search
-    - memory_write
-    - memory_reflect
-    - doc_search
-    - project_context_get
-    - process_log
-    - process_search
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic, reflective]
+  max_search_results: 8
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [memory]
+  direct_tools:
+    - memory.search
+    - memory.write
+    - memory.reflect
   denied_tools:
-    - feishu_bitable_create_record
-    - feishu_bitable_update_record
-    - feishu_bitable_batch_create_records
-    - feishu_bitable_batch_update_records
-  default_permission: read_only
-  write_tools_require_quality_gate: true
-write_policy:
-  can_write_base: false
-  writable_tables: []
-  require_quality_gate: true
-  require_idempotency_key: true
-  allow_direct_message_send: false
-hook_policy:
-  final_verify_hooks:
-    - weekly_report_required_sections_check
-    - weekly_report_evidence_check
+    - feishu.*
+  delegated_toolsets:
+    feishu: feishu_tool_agent
+orchestration:
+  subscribes:
+    - followup.generated
+    - weekly_report.requested
+  emits:
+    - weekly_report.generated
+  priority: 20
+  max_parallel_runs: 1
 input_schema: WeeklyReportInput
 output_schema: WeeklyReportOutput

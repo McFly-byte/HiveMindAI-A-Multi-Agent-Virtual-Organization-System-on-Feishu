@@ -1,0 +1,50 @@
+agent_id: feishu_tool_agent
+role: tool_agent
+entrypoint: tool_agent
+display_name: Feishu Tool Agent
+description: 通用 tool_agent 的 Feishu 实例，负责把业务意图拆解为 Feishu adapter 调用。
+workspace_path: agents/feishu_tool_agent
+prompt:
+  system: AGENT.md
+  shared:
+    - prompts/shared/output_rules.md
+model:
+  provider: deepseek
+  name: deepseek-chat
+  temperature: 0
+  max_tokens: 2048
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 8
+  max_child_runs: 1
+  timeout_seconds: 240
+  max_retries: 3
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic]
+  max_search_results: 5
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [feishu, memory, trace]
+  direct_tools:
+    - feishu.*
+    - memory.search
+    - memory.write
+    - trace.log
+  denied_tools: []
+  delegated_toolsets: {}
+tool_agent:
+  domain: feishu
+  providers: [feishu, memory, trace]
+orchestration:
+  subscribes:
+    - tool.feishu.requested
+  emits:
+    - tool.feishu.completed
+  priority: 90
+  max_parallel_runs: 1
+input_schema: ToolIntent
+output_schema: ToolResult

@@ -1,0 +1,49 @@
+agent_id: orchestrator
+role: orchestrator
+entrypoint: orchestrator_agent
+display_name: Hive Orchestrator Agent
+description: 通用编排 Agent，负责事件分发、子 Agent 调度、Feishu intent 委托和结果汇总。
+workspace_path: agents/orchestrator
+prompt:
+  system: AGENT.md
+  shared:
+    - prompts/shared/output_rules.md
+    - prompts/shared/evidence_rules.md
+model:
+  provider: deepseek
+  name: deepseek-chat
+  temperature: 0.1
+  max_tokens: 4096
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 8
+  max_child_runs: 12
+  timeout_seconds: 240
+  max_retries: 2
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic, reflective]
+  max_search_results: 8
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [memory]
+  direct_tools:
+    - memory.search
+    - memory.write
+    - memory.reflect
+  denied_tools:
+    - feishu.*
+  delegated_toolsets:
+    feishu: feishu_tool_agent
+orchestration:
+  subscribes:
+    - "*"
+  emits:
+    - orchestration.completed
+  priority: 100
+  max_parallel_runs: 4
+input_schema: HiveEvent
+output_schema: AgentOutput
