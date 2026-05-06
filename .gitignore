@@ -25,9 +25,5 @@ runtime/*.db-*
 runtime/*.json
 uv.lock
 *.egg-info
-
-.gitignore
 Agents.md
-.gitignore
 tests
-.gitignore
