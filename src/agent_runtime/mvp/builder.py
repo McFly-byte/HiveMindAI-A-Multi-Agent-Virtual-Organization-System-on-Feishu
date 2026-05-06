@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
 from agent_runtime.enums import AgentName, BaseTableName
-from agent_runtime.loaders import load_runtime_config
+from agent_runtime.loaders import load_project_manifest, load_runtime_config
+from agent_runtime.project_state import ProjectManifest
 from agent_runtime.memory.trace_sink import CompositeTraceSink, MemoryTraceSink
 from agent_runtime.runtime import AgentRuntime
 
 from tool_integration.executor import ToolIntegrationExecutor, build_tool_integration_executor
 
 from agent_runtime.mvp.handlers import MVPAgentRegistry
+from agent_runtime.mvp.project_env import expand_env_value
 from agent_runtime.mvp.quality_gate_impl import SimpleRuleQualityGate
 from agent_runtime.mvp.trace_sink import LocalJsonlTraceSink
 
@@ -41,16 +44,23 @@ def build_runtime_with_tool_integration(
 
     coord = runtime_config.agents[AgentName.COORDINATOR]
     writable = {BaseTableName(str(t)) for t in coord.write_policy.writable_tables}
-    quality_gate = SimpleRuleQualityGate(writable)
+    manifest_raw = load_project_manifest(root / "projects" / "enterprise_rag").model_dump(mode="json")
+    manifest = ProjectManifest.model_validate(expand_env_value(manifest_raw))
+    quality_gate = SimpleRuleQualityGate(writable, manifest.tables)
 
     trace_path = trace_dir if trace_dir is not None else (root / runtime_config.local_trace_dir)
+    memory_db_raw = os.environ.get("HIVEMIND_MEMORY_DB_PATH", "runtime/memory.db")
+    memory_db = Path(memory_db_raw).expanduser()
+    if not memory_db.is_absolute():
+        memory_db = root / memory_db
     trace_sink = CompositeTraceSink(
         [
             LocalJsonlTraceSink(trace_path),
-            MemoryTraceSink(root / "runtime" / "memory.db"),
+            MemoryTraceSink(memory_db),
         ]
     )
 
     registry = MVPAgentRegistry(runtime_config, executor, root, quality_gate)
     runtime = AgentRuntime(runtime_config, registry, executor, quality_gate, trace_sink)
+    registry.bind_runtime(runtime)
     return runtime, executor

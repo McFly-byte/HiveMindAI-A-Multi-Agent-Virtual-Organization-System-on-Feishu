@@ -4,3 +4,6 @@ lark-oapi>=1.4.0
 
 [dev]
 pytest>=7.0
+
+[memory]
+mem0ai>=0.1.0

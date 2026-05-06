@@ -63,6 +63,8 @@ class ToolPermission(StrEnum):
 
 
 class ModelProvider(StrEnum):
+    AIHUBMIX = "aihubmix"
+    OPENAI = "openai"
     DEEPSEEK = "deepseek"
     QWEN = "qwen"
     DOUBAO = "doubao"

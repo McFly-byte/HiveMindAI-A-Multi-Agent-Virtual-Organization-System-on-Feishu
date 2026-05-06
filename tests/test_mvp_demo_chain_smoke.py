@@ -13,6 +13,7 @@ def test_demo_script_exits_cleanly_without_feishu_env() -> None:
     for key in list(env.keys()):
         if key.startswith("FEISHU_"):
             del env[key]
+    env["HIVEMIND_SKIP_DOTENV"] = "1"
 
     proc = subprocess.run(
         [sys.executable, str(script), "--skip-coordinator-write"],

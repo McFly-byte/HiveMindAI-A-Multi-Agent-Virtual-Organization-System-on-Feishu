@@ -47,4 +47,4 @@ def test_load_project_manifest_merges_table_manifest() -> None:
 
     assert manifest.project_id == "enterprise_rag"
     assert BaseTableName.PROJECTS in manifest.tables
-    assert manifest.tables[BaseTableName.TASKS].table_id == "${FEISHU_TABLE_TASKS}"
+    assert manifest.tables[BaseTableName.TASKS].table_id

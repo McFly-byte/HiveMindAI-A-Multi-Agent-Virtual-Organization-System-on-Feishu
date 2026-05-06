@@ -74,3 +74,5 @@ def test_full_chain_dotenv_directories_scan_registers_tools(monkeypatch: pytest.
     scan_tool_dirs(reg, dirs, _PROJECT_ROOT, event_bus=EventBus())
     assert len(reg.tools) >= 8
     assert "feishu_drive_list_folder" in reg.tools
+    assert "memory_search" in reg.tools
+    assert "memory_write" in reg.tools

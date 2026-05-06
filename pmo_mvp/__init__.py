@@ -1,2 +1,0 @@
-"""PMO MVP package."""
-

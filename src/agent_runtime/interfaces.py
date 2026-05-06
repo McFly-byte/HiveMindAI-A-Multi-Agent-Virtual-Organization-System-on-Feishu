@@ -1,12 +1,18 @@
 from typing import Any, Protocol
 
 from agent_runtime.config import AgentConfig
+from agent_runtime.context import AgentContext
 from agent_runtime.quality_gate import QualityGateRequest, QualityGateResult
 from agent_runtime.session import AgentSession
 
 
 class AgentHandlerProtocol(Protocol):
     async def run(self, session: AgentSession, input_payload: Any) -> Any:
+        ...
+
+
+class AgentContextAwareHandlerProtocol(Protocol):
+    async def run_with_context(self, context: AgentContext, input_payload: Any) -> Any:
         ...
 
 

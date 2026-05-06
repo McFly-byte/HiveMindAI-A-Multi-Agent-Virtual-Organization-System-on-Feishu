@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+import asyncio
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+_ROOT = Path(__file__).resolve().parents[1]
+_SRC = _ROOT / "src"
+if str(_SRC.resolve()) not in sys.path:
+    sys.path.insert(0, str(_SRC.resolve()))
 
-from pmo_mvp.memory import MemoryStore, MemoryToolset, NullVectorBackend  # noqa: E402
+from agent_runtime.config import RuntimeConfig  # noqa: E402
+from agent_runtime.enums import AgentName, TriggerType  # noqa: E402
+from agent_runtime.memory import MemoryStore, MemoryToolset, NullVectorBackend  # noqa: E402
+from agent_runtime.memory.trace_sink import MemoryTraceSink  # noqa: E402
+from agent_runtime.session import AgentSession  # noqa: E402
+from agent_runtime.loaders import load_agent_config  # noqa: E402
+from tool_integration.executor import ToolIntegrationExecutor  # noqa: E402
 
 
 class MemoryStoreTests(unittest.TestCase):
@@ -285,37 +296,95 @@ class ToolsetTests(unittest.TestCase):
         self.assertGreaterEqual(reflect["result"]["source_count"], 1)
 
 
-class EngineIntegrationTests(unittest.TestCase):
-    def test_engine_runs_with_memory(self) -> None:
-        from pmo_mvp.demo_data import build_demo_state
-        from pmo_mvp.engine import PMOCycleEngine
-        from pmo_mvp.store import JsonStateStore
-
+class RuntimeMemoryIntegrationTests(unittest.TestCase):
+    def test_trace_sink_persists_runtime_session_checkpoint(self) -> None:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        runtime_path = Path(tmp.name) / "state.json"
-        output_dir = Path(tmp.name) / "output"
         memory_db = Path(tmp.name) / "memory.db"
+        sink = MemoryTraceSink(memory_db, file_root=Path(tmp.name) / "files")
+        session = AgentSession(
+            session_id="session-1",
+            run_id="run-runtime-1",
+            project_id="enterprise_rag",
+            agent_name=AgentName.PROJECT_SECRETARY,
+            trigger_type=TriggerType.MANUAL,
+        )
 
-        store = JsonStateStore(runtime_path)
-        store.save(build_demo_state())
-        memory = MemoryStore(db_path=memory_db, vector_backend=NullVectorBackend())
+        async def _run() -> None:
+            await sink.on_session_start(session)
+            session.mark_success(summary="project state captured")
+            await sink.on_session_end(session)
 
-        engine = PMOCycleEngine(store=store, output_dir=output_dir, memory=memory)
-        summary = engine.run()
-        self.assertIn("today", summary)
+        asyncio.run(_run())
 
-        memories = memory.list_memories(memory_type="episodic", limit=100)
-        self.assertGreater(len(memories), 0, "expected episodic memories from agent runs")
-        sessions = memory.list_sessions(limit=100)
-        self.assertGreater(len(sessions), 0, "expected AgentSession records from agent runs")
-        events = memory.list_process_events(limit=100)
-        self.assertGreater(len(events), 0, "expected process events from agent runs")
-        self.assertIsNotNone(memory.read_agent_prompt("risk-assessor"))
-        self.assertIsNotNone(memory.read_project_profile("proj-atlas"))
-        context = memory.get_project_context("proj-atlas")
-        self.assertGreater(len(context["members"]), 0)
-        memory.close()
+        store = MemoryStore(db_path=memory_db, vector_backend=NullVectorBackend())
+        self.addCleanup(store.close)
+        checkpoint = store.get_session("run-runtime-1")
+        self.assertIsNotNone(checkpoint)
+        assert checkpoint is not None
+        self.assertEqual(checkpoint.status, "completed")
+        self.assertEqual(checkpoint.agent_id, "project_secretary")
+        self.assertEqual(checkpoint.project_id, "enterprise_rag")
+        self.assertEqual(checkpoint.output_summary, "project state captured")
+
+    def test_memory_tools_are_callable_through_tool_integration(self) -> None:
+        async def _run() -> None:
+            tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(tmp.cleanup)
+            old_db_path = os.environ.get("HIVEMIND_MEMORY_DB_PATH")
+            os.environ["HIVEMIND_MEMORY_DB_PATH"] = str(Path(tmp.name) / "memory.db")
+            try:
+                cfg = load_agent_config(_ROOT / "agents" / "coordinator" / "agent.yaml")
+                runtime_config = RuntimeConfig(agents={cfg.agent_name: cfg})
+                executor = ToolIntegrationExecutor(
+                    runtime_config,
+                    _ROOT,
+                    tool_dirs=["tool_integrations"],
+                )
+                session = AgentSession(
+                    session_id="session-2",
+                    run_id="run-runtime-2",
+                    project_id="enterprise_rag",
+                    agent_name=AgentName.COORDINATOR,
+                    trigger_type=TriggerType.MANUAL,
+                )
+
+                write = await executor.call_tool(
+                    "memory_write",
+                    {
+                        "content": "Coordinator learned that blocked tasks need owner follow-up.",
+                        "memory_type": "procedural",
+                        "agent_id": "coordinator",
+                        "project_id": "enterprise_rag",
+                    },
+                    session,
+                )
+                self.assertTrue(write["ok"])
+                self.assertIn("mem-", write["result"]["id"])
+
+                search = await executor.call_tool(
+                    "memory_search",
+                    {
+                        "query": "blocked tasks owner follow-up",
+                        "agent_id": "coordinator",
+                        "project_id": "enterprise_rag",
+                        "top_k": 5,
+                    },
+                    session,
+                )
+                self.assertTrue(search["ok"])
+                self.assertGreaterEqual(search["result"]["count"], 1)
+                tool_names = [tc.tool_name for step in session.steps for tc in step.tool_calls]
+                self.assertEqual(tool_names, ["memory_write", "memory_search"])
+            finally:
+                if "executor" in locals():
+                    await executor.shutdown()
+                if old_db_path is None:
+                    os.environ.pop("HIVEMIND_MEMORY_DB_PATH", None)
+                else:
+                    os.environ["HIVEMIND_MEMORY_DB_PATH"] = old_db_path
+
+        asyncio.run(_run())
 
 
 if __name__ == "__main__":

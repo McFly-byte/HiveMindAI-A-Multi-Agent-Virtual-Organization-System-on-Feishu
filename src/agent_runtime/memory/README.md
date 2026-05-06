@@ -11,6 +11,7 @@
 | --- | --- | --- |
 | 点记忆 | `agents/*/AGENT.md`、`projects/*/PROJECT.md` | Agent prompt 和项目稳定上下文。 |
 | 短期记忆 | `agent_runtime.session.AgentSession` | run 内热状态：steps、tool calls、errors、SessionMemoryItem。 |
+| 上下文管理 | `agent_runtime.context.AgentContext` | 上下文预算、scratchpad、memory 检索和 compact summary。 |
 | 短期 checkpoint | `agent_runtime.memory.AgentSessionCheckpoint` | SQLite 中的持久化摘要，用于恢复和审计。 |
 | 过程记忆 | `process_events`、`session.steps`、`traces/*.jsonl` | 关键过程日志和工具调用轨迹。 |
 | 长期记忆 | `memories` + FTS5 + 可选向量后端 | 跨 run 可复用的 episodic / reflective / procedural 经验。 |
@@ -145,6 +146,52 @@ await tool_executor.call_tool(
 这样工具调用会被写入 `session.steps`，同时遵守 `agents/*/agent.yaml` 中的
 `tool_policy.allowed_tools`。
 
+## AgentSession 使用方式
+
+运行态 `AgentSession` 只在 agent loop 内存中流转：
+
+1. `AgentRuntime.create_session()` 创建 `agent_runtime.session.AgentSession`。
+2. Handler 执行时把同一个 `session` 传给 `tool_executor.call_tool()`。
+3. `ToolIntegrationExecutor` 在 `session.steps` 中追加 `ToolCallRecord`。
+4. Handler 返回 Pydantic output 后，`AgentRuntime` 把 output 摘要写入 `session.memory`。
+5. `MemoryTraceSink` 在 start/end/error 时把 session 摘要持久化成 `AgentSessionCheckpoint`。
+
+示例：
+
+```python
+session = runtime.create_session(event, "project_secretary")
+
+await tool_executor.call_tool(
+    "memory_write",
+    {
+        "content": "阻塞任务需要记录 owner、解除时间和下一步动作。",
+        "memory_type": "procedural",
+        "agent_id": str(session.agent_name),
+        "project_id": session.project_id,
+        "run_id": session.run_id,
+    },
+    session,
+)
+```
+
+不要在 agent loop 中每次读取短期状态都查 SQLite。短期热状态应读写当前
+`AgentSession` 对象；SQLite 里的 `AgentSessionCheckpoint` 用于跨 run 查询、
+审计、恢复和报表，不承担当前 run 的高频上下文管理。
+
+## Compact Summary 边界
+
+compact summary 不由 `MemoryStore` 自行生成，已经放在
+`agent_runtime.context.AgentContext`：
+
+| 层 | 职责 |
+| --- | --- |
+| `AgentSession` | 保存当前 run 的热状态、steps、临时 memory。 |
+| `AgentContext` | 判断上下文是否超长，裁剪 messages/tool results，生成 compact summary。 |
+| `MemoryTraceSink` / `MemoryStore` | 持久化 compact 后的 summary、scratchpad、checkpoint 和长期记忆。 |
+
+也就是说，compact 策略属于 runtime context 层；memory 层只负责可靠存取和检索。
+当前默认策略是 deterministic summarizer，后续可以替换为 LLM summarizer。
+
 ## Schema
 
 核心表：
@@ -167,4 +214,3 @@ chunks_fts
 - `importance` / `confidence` 加权
 - `access_count` / `last_accessed` 访问统计
 - `expires_at` 和 `memory_evict` 淘汰
-

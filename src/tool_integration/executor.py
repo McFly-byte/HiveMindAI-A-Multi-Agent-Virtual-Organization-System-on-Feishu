@@ -48,8 +48,8 @@ def _summarize_invoke_result(out: dict[str, Any]) -> str:
     return _truncate(result if result is not None else {"ok": True, "tool": out.get("tool")})
 
 
-def _ensure_act_step(session: AgentSession) -> AgentStepRecord:
-    if session.steps and session.steps[-1].step_type == AgentStepType.ACT:
+def _ensure_tool_step(session: AgentSession) -> AgentStepRecord:
+    if session.steps and session.steps[-1].ended_at is None:
         return session.steps[-1]
 
     idx = len(session.steps)
@@ -57,7 +57,7 @@ def _ensure_act_step(session: AgentSession) -> AgentStepRecord:
         step_id=f"stp_{uuid4().hex[:12]}",
         step_type=AgentStepType.ACT,
         step_index=idx,
-        input_summary="tool integration",
+        input_summary="tool integration direct call",
     )
     session.add_step(step)
     return session.steps[-1]
@@ -118,7 +118,9 @@ class ToolIntegrationExecutor:
             self._project_root,
             event_bus=event_bus,
         )
-        self._tool_runtime = ToolRuntime(registry, event_bus, env_config())
+        config = env_config()
+        config.setdefault("HIVEMIND_PROJECT_ROOT", str(self._project_root))
+        self._tool_runtime = ToolRuntime(registry, event_bus, config)
 
     @property
     def tool_runtime(self) -> ToolRuntime:
@@ -138,7 +140,7 @@ class ToolIntegrationExecutor:
         ended = datetime.utcnow()
         success = bool(out.get("ok", False))
 
-        step = _ensure_act_step(session)
+        step = _ensure_tool_step(session)
         err_info: RuntimeErrorInfo | None = None
         if not success:
             err_info = RuntimeErrorInfo(

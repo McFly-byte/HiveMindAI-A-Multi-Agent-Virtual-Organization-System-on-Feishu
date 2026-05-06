@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -20,7 +21,13 @@ if sys.platform.startswith("win"):
 # Load .env as early as possible so modules that read env at import-time can see it.
 from tool_integration.loader import load_dotenv_if_present  # noqa: E402
 
-load_dotenv_if_present(_ROOT)
+def _load_dotenv() -> None:
+    if os.environ.get("HIVEMIND_SKIP_DOTENV", "").lower() in {"1", "true", "yes"}:
+        return
+    load_dotenv_if_present(_ROOT)
+
+
+_load_dotenv()
 
 def _ensure_runtime_deps() -> None:
     """Fail fast with a clear hint when ``pip`` and ``python`` are different interpreters."""
@@ -38,13 +45,13 @@ def _ensure_runtime_deps() -> None:
     print("Current interpreter cannot import project dependencies (often because `pip` installed into a different Python than this script uses).\n", file=sys.stderr, flush=True)
     print(f"  Python executable: {sys.executable}", file=sys.stderr, flush=True)
     print(f"  Version: {sys.version.splitlines()[0]}", file=sys.stderr, flush=True)
-    print(f"  缂哄け妯″潡: {', '.join(missing)}\n", file=sys.stderr, flush=True)
+    print(f"  Missing modules: {', '.join(missing)}\n", file=sys.stderr, flush=True)
     print(
-        "璇风敤**涓婇潰杩欎竴琛?*瀵瑰簲鐨?pip 瀹夎渚濊禆锛堜繚璇?pip 涓?python 涓€鑷达級锛屽湪浠撳簱鏍圭洰褰曟墽琛岋細\n"
+        "Use the same interpreter shown above to install dependencies from the repo root:\n"
         f"  {sys.executable} -m pip install -r requirements.txt\n"
-        "鎴栵細\n"
+        "or:\n"
         f"  {sys.executable} -m pip install -e .\n"
-        "Windows 鍙鏌ワ細`where python`銆乣where pip` 鏄惁鎸囧悜鍚屼竴瀹夎鐩綍銆俓n",
+        "On Windows, check that `where python` and `where pip` point to the same installation.\n",
         file=sys.stderr,
         flush=True,
     )
@@ -53,49 +60,68 @@ def _ensure_runtime_deps() -> None:
 
 _ensure_runtime_deps()
 
-from agent_runtime.agent_io import (  # noqa: E402
-    FollowUpInput,
-    FollowUpOutput,
-    ProjectStateOutput,
-    RiskAnalysisInput,
-    RiskAnalysisOutput,
-    WeeklyReportInput,
-)
-from agent_runtime.base_refs import RecordCreate  # noqa: E402
-from agent_runtime.enums import AgentName, BaseTableName, EventType, TriggerType  # noqa: E402
+from agent_runtime.enums import AgentName, EventType, TriggerType  # noqa: E402
 from agent_runtime.events import AgentCallRequest, AgentTriggerEvent  # noqa: E402
 from agent_runtime.loaders import load_project_manifest  # noqa: E402
 from agent_runtime.mvp.builder import build_runtime_with_tool_integration  # noqa: E402
-from agent_runtime.mvp.project_env import feishu_demo_chain_env_missing  # noqa: E402
+from agent_runtime.mvp.project_env import expand_env_value, feishu_demo_chain_env_missing  # noqa: E402
+from agent_runtime.project_state import ProjectManifest  # noqa: E402
 from feishu_adapter.feishu_client import feishu_request  # noqa: E402
 
 
-def _memory_output(session: object, agent: AgentName) -> dict | None:
-    key = f"{agent}_output"
-    for item in reversed(getattr(session, "memory", [])):
-        if getattr(item, "key", None) == key:
-            return item.value  # type: ignore[no-any-return]
-    return None
+WRITEBACK_TABLES = {"Tasks", "Risks", "FollowUps", "WeeklyReports", "AgentRuns"}
+AGENT_RUNS_COMPAT_FIELDS = {"ID", "Agent名称", "触发时间", "操作描述", "输入来源", "输出结果", "执行状态"}
+
+FIELD_ALIASES: dict[str, dict[str, tuple[str, ...]]] = {
+    "Risks": {
+        "风险标题": ("ID", "标题"),
+        "由哪个 Agent 创建": ("由哪个 Agent创建", "创建 Agent", "创建Agent"),
+    },
+    "FollowUps": {
+        "追问标题": ("ID", "标题"),
+    },
+    "WeeklyReports": {
+        "由哪个 Agent 创建": ("由哪个 Agent创建", "创建 Agent", "创建Agent"),
+    },
+}
 
 
-def _first_writable_field_name(app_token: str, table_id: str) -> str:
+def _load_expanded_manifest(project_id: str) -> ProjectManifest:
+    manifest = load_project_manifest(_ROOT / "projects" / project_id)
+    return ProjectManifest.model_validate(expand_env_value(manifest.model_dump(mode="json")))
+
+
+def _remote_field_names(app_token: str, table_id: str) -> set[str]:
     data = feishu_request(
         "GET",
         f"/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/fields",
-        queries={"page_size": 100},
+        queries={"page_size": 500},
     )
     items = data.get("items", [])
     if not isinstance(items, list):
-        return ""
-    auto_types = {1001, 1002, 1003, 1004, 1005}
-    for it in items:
-        if not isinstance(it, dict):
+        return set()
+    return {str(item.get("field_name")) for item in items if isinstance(item, dict) and item.get("field_name")}
+
+
+def _field_exists(table_name: str, field_name: str, actual: set[str]) -> bool:
+    return field_name in actual or any(alias in actual for alias in FIELD_ALIASES.get(table_name, {}).get(field_name, ()))
+
+
+def _writeback_schema_missing(project_id: str) -> dict[str, list[str]]:
+    manifest = _load_expanded_manifest(project_id)
+    missing: dict[str, list[str]] = {}
+    for table_name, table in manifest.tables.items():
+        if str(table_name) not in WRITEBACK_TABLES:
             continue
-        name = it.get("field_name")
-        ftype = int(it.get("type", 0))
-        if isinstance(name, str) and name and ftype not in auto_types:
-            return name
-    return ""
+        actual = _remote_field_names(manifest.base_app_token, table.table_id)
+        if str(table_name) == "AgentRuns":
+            required = sorted(AGENT_RUNS_COMPAT_FIELDS)
+        else:
+            required = [field.field_name for field in table.fields if field.write_allowed]
+        gaps = [field_name for field_name in required if not _field_exists(str(table_name), field_name, actual)]
+        if gaps:
+            missing[str(table_name)] = gaps
+    return missing
 
 
 async def _run() -> int:
@@ -106,9 +132,14 @@ async def _run() -> int:
         action="store_true",
         help="Run coordinator without proposed Base creates (still runs trace + quality path smoke).",
     )
+    parser.add_argument(
+        "--check-schema-only",
+        action="store_true",
+        help="Only verify remote Feishu Base writeback fields against table_manifest.yaml.",
+    )
     args = parser.parse_args()
 
-    load_dotenv_if_present(_ROOT)
+    _load_dotenv()
     missing = feishu_demo_chain_env_missing(_ROOT)
     if missing:
         print("Cannot start MVP chain: missing required environment variables:", flush=True)
@@ -120,6 +151,23 @@ async def _run() -> int:
         )
         return 2
 
+    if not args.skip_coordinator_write or args.check_schema_only:
+        schema_missing = _writeback_schema_missing(args.project_id)
+        if schema_missing:
+            print("Remote Feishu Base schema is missing fields required for writeback:", flush=True)
+            for table, fields in schema_missing.items():
+                print(f"  - {table}: {', '.join(fields)}", flush=True)
+            print(
+                "\nFix: run `uv run python scripts/ensure_bitable_fields.py --project-id "
+                f"{args.project_id} --tables Tasks Risks FollowUps WeeklyReports AgentRuns --yes` "
+                "or add these fields manually in Feishu Base.",
+                flush=True,
+            )
+            return 3
+        if args.check_schema_only:
+            print("Remote Feishu Base schema check passed.", flush=True)
+            return 0
+
     runtime, executor = build_runtime_with_tool_integration(_ROOT)
     event = AgentTriggerEvent(
         event_id=str(uuid4()),
@@ -128,127 +176,25 @@ async def _run() -> int:
         project_id=args.project_id,
     )
 
-    chain: list[tuple[AgentName, dict | None]] = [
-        (AgentName.PROJECT_SECRETARY, {}),
-    ]
-
     try:
-        for agent_name, payload in chain:
-            req = AgentCallRequest(
-                agent_name=agent_name,
-                event=event,
-                reason="mvp_demo_chain",
-                input_payload=payload,
-            )
-            session = await runtime.run_agent(req)
-            summary = session.final_summary or ""
-            print(
-                f"[{agent_name}] run_id={session.run_id} status={session.status} summary={summary[:200]}",
-                flush=True,
-            )
-            if session.status.value != "success":
-                print(f"  errors: {session.errors}", flush=True)
-                return 1
-
-        raw_ps = _memory_output(session, AgentName.PROJECT_SECRETARY)
-        if not raw_ps:
-            print("project_secretary output not found", flush=True)
-            return 1
-        project_state = ProjectStateOutput.model_validate(raw_ps)
-
-        risk_req = AgentCallRequest(
-            agent_name=AgentName.RISK_ANALYSIS,
-            event=event,
-            reason="mvp_demo_chain",
-            input_payload=RiskAnalysisInput(
-                run_id=session.run_id,
-                project_id=args.project_id,
-                project_state=project_state,
-            ).model_dump(mode="json"),
-        )
-        s2 = await runtime.run_agent(risk_req)
-        print(
-            f"[{AgentName.RISK_ANALYSIS}] run_id={s2.run_id} status={s2.status} summary={s2.final_summary or ''}",
-            flush=True,
-        )
-        if s2.status.value != "success":
-            return 1
-        raw_risk = _memory_output(s2, AgentName.RISK_ANALYSIS)
-        risk_out = RiskAnalysisOutput.model_validate(raw_risk or {})
-
-        fu_req = AgentCallRequest(
-            agent_name=AgentName.FOLLOWUP,
-            event=event,
-            reason="mvp_demo_chain",
-            input_payload=FollowUpInput(
-                run_id=s2.run_id,
-                project_id=args.project_id,
-                missing_fields=project_state.missing_fields,
-                risk_candidates=risk_out.risk_candidates,
-            ).model_dump(mode="json"),
-        )
-        s3 = await runtime.run_agent(fu_req)
-        print(
-            f"[{AgentName.FOLLOWUP}] run_id={s3.run_id} status={s3.status} summary={s3.final_summary or ''}",
-            flush=True,
-        )
-        if s3.status.value != "success":
-            return 1
-        raw_fu = _memory_output(s3, AgentName.FOLLOWUP)
-        follow_out = FollowUpOutput.model_validate(raw_fu or {})
-
-        wr_req = AgentCallRequest(
-            agent_name=AgentName.WEEKLY_REPORT,
-            event=event,
-            reason="mvp_demo_chain",
-            input_payload=WeeklyReportInput(
-                run_id=s3.run_id,
-                project_id=args.project_id,
-                period="MVP-DEMO",
-                project_state=project_state,
-                risks=risk_out.risk_candidates,
-                followups=follow_out.followup_requests,
-            ).model_dump(mode="json"),
-        )
-        s4 = await runtime.run_agent(wr_req)
-        print(
-            f"[{AgentName.WEEKLY_REPORT}] run_id={s4.run_id} status={s4.status} summary={s4.final_summary or ''}",
-            flush=True,
-        )
-        if s4.status.value != "success":
-            return 1
-
-        coord_payload: dict = {}
-        if not args.skip_coordinator_write:
-            manifest = load_project_manifest(_ROOT / "projects" / args.project_id)
-            agent_runs = manifest.tables[BaseTableName.AGENT_RUNS]
-            field_names = [f.field_name for f in agent_runs.fields]
-            run_id_field = _first_writable_field_name(manifest.base_app_token, agent_runs.table_id) or agent_runs.primary_key_field or (field_names[0] if field_names else "run_id")
-            fields: dict[str, str] = {run_id_field: s4.run_id}
-            if len(field_names) > 1:
-                fields[field_names[1]] = args.project_id
-            coord_payload = {
-                "proposed_creates": [
-                    RecordCreate(
-                        table_name=BaseTableName.AGENT_RUNS,
-                        fields=fields,
-                        idempotency_key=f"agent_run_{s4.run_id}",
-                        reason="mvp_demo_chain_agent_run_log",
-                    ).model_dump(mode="json")
-                ]
-            }
         coord_req = AgentCallRequest(
             agent_name=AgentName.COORDINATOR,
             event=event,
-            reason="mvp_demo_chain_finalize",
-            input_payload=coord_payload,
+            reason="mvp_demo_chain_orchestrate",
+            input_payload={
+                "orchestrate": True,
+                "writeback": not args.skip_coordinator_write,
+                "period": "MVP-DEMO",
+                "demo_full_chain": True,
+            },
         )
-        s5 = await runtime.run_agent(coord_req)
+        session = await runtime.run_agent(coord_req)
         print(
-            f"[{AgentName.COORDINATOR}] run_id={s5.run_id} status={s5.status} summary={s5.final_summary or ''}",
+            f"[{AgentName.COORDINATOR}] run_id={session.run_id} status={session.status} summary={session.final_summary or ''}",
             flush=True,
         )
-        if s5.status.value != "success":
+        if session.status.value != "success":
+            print(f"  errors: {session.errors}", flush=True)
             return 1
 
         return 0
@@ -265,4 +211,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

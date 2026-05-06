@@ -95,7 +95,21 @@ def _list_fields(app_token: str, table_id: str) -> list[dict[str, Any]]:
     return items if isinstance(items, list) else []
 
 
-def _rebuild_table(app_token: str, table_name: str, spec: dict[str, Any], dry_run: bool) -> None:
+def _resolve_link_table_id(field: dict[str, Any], tables: dict[str, Any]) -> str:
+    prop = field.get("property")
+    if isinstance(prop, dict) and isinstance(prop.get("table_id"), str) and prop.get("table_id"):
+        return prop["table_id"]
+    if isinstance(field.get("link_table_id"), str) and field.get("link_table_id"):
+        return field["link_table_id"]
+    link_key = field.get("link_table_key") or field.get("link_table_name")
+    if isinstance(link_key, str) and link_key in tables and isinstance(tables[link_key], dict):
+        table_id = tables[link_key].get("table_id")
+        if isinstance(table_id, str):
+            return table_id
+    return ""
+
+
+def _rebuild_table(app_token: str, table_name: str, spec: dict[str, Any], tables: dict[str, Any], dry_run: bool) -> None:
     table_id = spec.get("table_id")
     if not isinstance(table_id, str) or not table_id:
         raise ValueError(f"table {table_name} missing table_id")
@@ -142,6 +156,11 @@ def _rebuild_table(app_token: str, table_name: str, spec: dict[str, Any], dry_ru
         enum_values = item.get("enum_values")
         if isinstance(enum_values, list) and ftype in (3, 4):
             prop["options"] = [{"name": str(v), "color": 0} for v in enum_values]
+        if ftype == 18:
+            link_table_id = _resolve_link_table_id(item, tables)
+            if not link_table_id:
+                raise ValueError(f"link field {table_name}.{field_name} missing target table_id")
+            prop["table_id"] = link_table_id
 
         body = {
             "field_name": field_name,
@@ -197,7 +216,7 @@ def main() -> int:
     for name, spec in targets:
         if not isinstance(spec, dict):
             continue
-        _rebuild_table(app_token, name, spec, args.dry_run)
+        _rebuild_table(app_token, name, spec, tables, args.dry_run)
 
     print("\nDone.")
     return 0

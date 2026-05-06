@@ -11,13 +11,21 @@ from tool_integration.tools import ToolContext, ToolRegistry, ToolSpec
 
 def _db_path(ctx: ToolContext) -> Path:
     raw = str(ctx.config.get("HIVEMIND_MEMORY_DB_PATH") or "runtime/memory.db")
-    return Path(raw)
+    path = Path(raw).expanduser()
+    if path.is_absolute():
+        return path
+    root = Path(str(ctx.config.get("HIVEMIND_PROJECT_ROOT") or ".")).expanduser()
+    return root / path
 
 
 def _dispatch_memory_tool(tool_name: str, args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
     store = MemoryStore(db_path=_db_path(ctx), vector_backend=NullVectorBackend())
     try:
-        return MemoryToolset(store).dispatch(tool_name, args)
+        out = MemoryToolset(store).dispatch(tool_name, args)
+        if not out.get("ok", False):
+            raise RuntimeError(str(out.get("error") or f"memory tool failed: {tool_name}"))
+        result = out.get("result")
+        return result if isinstance(result, dict) else {"result": result}
     finally:
         store.close()
 

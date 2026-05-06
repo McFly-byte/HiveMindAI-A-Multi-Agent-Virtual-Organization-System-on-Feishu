@@ -19,5 +19,15 @@ htmlcov/
 .DS_Store
 Thumbs.db
 traces
+output/
+runtime/*.db
+runtime/*.db-*
+runtime/*.json
 uv.lock
 *.egg-info
+
+.gitignore
+Agents.md
+.gitignore
+tests
+.gitignore
