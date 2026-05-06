@@ -1,3 +1,5 @@
+﻿from __future__ import annotations
+
 from .embedding import NullVectorBackend, VectorBackend, build_backend
 from .store import (
     AgentSessionCheckpoint,

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hivemindai"
 version = "0.1.0"
-description = "HiveMindAI — Feishu Base PMO multi-agent MVP (runtime + tool integration)"
+description = "HiveMindAI 鈥?Feishu Base PMO multi-agent MVP (runtime + tool integration)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -23,4 +23,4 @@ memory = ["mem0ai>=0.1.0"]
 where = ["src", "src/agent-hive"]
 
 [tool.setuptools.package-data]
-"agent_runtime.memory" = ["schema.sql", "README.md"]
+"agent_hive.memory.runtime_compat" = ["schema.sql"]

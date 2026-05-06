@@ -1,0 +1,18 @@
+﻿jobs:
+  - name: fr02_inspection
+    interval_seconds: 3600
+    run_on_start: true
+    event_type: fr02.inspection.requested
+    target_agent_id: orchestrator
+    payload:
+      summary: "FR-02 任务巡检与数据缺口识别"
+      inspection_type: fr02_task_data_gap
+      use_llm: false
+      knowledge_space_name: "项目中枢"
+      base_name: "enterprise_rag表"
+      table_names:
+        project: "项目表"
+        task: "任务表"
+        milestone: "里程碑表"
+        meeting_minutes: "会议纪要表"
+        risk: "风险表"

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import asyncio
@@ -8,6 +8,7 @@ from pathlib import Path
 from agent_hive.config.env import load_dotenv_if_present
 from agent_hive.config.loader import load_runtime_config
 from agent_hive.events.models import HiveEvent
+from agent_hive.events.sources.cron_loader import load_cron_jobs
 from agent_hive.events.sources.feishu_im import FeishuIMEventSource
 from agent_hive.events.sources.schedule import ScheduledEventSource
 from agent_hive.events.sources.stdin import StdinEventSource
@@ -42,9 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Start and bridge Feishu IM WebSocket adapter events.",
     )
     serve.add_argument("--target-agent", default="orchestrator")
-    serve.add_argument("--fr02-inspection", action="store_true", help="Enable FR-02 scheduled task/data-gap inspection.")
-    serve.add_argument("--fr02-interval-seconds", type=float, default=3600.0)
-    serve.add_argument("--fr02-no-run-on-start", action="store_true")
+    serve.add_argument("--cron-dir", default="cron", help="Cron job directory (*.yaml/*.yml).")
     return parser
 
 
@@ -110,20 +109,20 @@ async def run_cli(argv: list[str] | None = None) -> int:
                     target_agent_id=args.target_agent,
                 )
             )
-        if args.fr02_inspection:
+        for job in load_cron_jobs(project_root / args.cron_dir):
             daemon.add_source(
                 ScheduledEventSource(
-                    name="fr02_inspection",
-                    event_type="fr02.inspection.requested",
+                    name=job.name,
+                    event_type=job.event_type,
                     project_id=args.project_id,
-                    target_agent_id="orchestrator",
-                    payload_factory=_fr02_payload,
-                    interval_seconds=args.fr02_interval_seconds,
-                    run_on_start=not args.fr02_no_run_on_start,
+                    target_agent_id=job.target_agent_id,
+                    payload_factory=lambda payload=job.payload: dict(payload),
+                    interval_seconds=job.interval_seconds,
+                    run_on_start=job.run_on_start,
                 )
             )
         if not daemon.sources:
-            raise SystemExit("serve requires at least one source: --stdin or --feishu-im")
+            raise SystemExit("serve requires at least one source: --stdin, --feishu-im, or cron jobs in --cron-dir")
         logger.info(
             "agent-hive daemon starting project_id=%s target_agent=%s sources=%s",
             args.project_id,
@@ -140,51 +139,3 @@ async def run_cli(argv: list[str] | None = None) -> int:
             await runtime.shutdown()
         return 0
     return 1
-
-
-def _fr02_payload() -> dict[str, object]:
-    return {
-        "summary": "FR-02 任务巡检与数据缺口识别",
-        "inspection_type": "fr02_task_data_gap",
-        "use_llm": False,
-        "knowledge_space_name": "项目中枢",
-        "base_name": "enterprise_rag表",
-        "table_names": {
-            "project": "项目表",
-            "task": "任务表",
-            "milestone": "里程碑表",
-            "meeting_minutes": "会议纪要表",
-            "risk": "风险表",
-        },
-        "loop_decision": {
-            "decision": "finish",
-            "thought": "scheduled FR-02 inspection should delegate Feishu data lookup to feishu_tool_agent",
-            "summary": "发起 FR-02 任务巡检与数据缺口识别",
-            "tool_calls": [
-                {
-                    "call_type": "feishu_intent",
-                    "reason": "巡检任务、里程碑和会议纪要同步状态",
-                    "intent": {
-                        "domain": "feishu.bitable",
-                        "action": "inspect_data_gaps",
-                        "target": {
-                            "knowledge_space_name": "项目中枢",
-                            "base_name": "enterprise_rag表",
-                        },
-                        "arguments": {
-                            "table_names": {
-                                "project": "项目表",
-                                "task": "任务表",
-                                "milestone": "里程碑表",
-                                "meeting_minutes": "会议纪要表",
-                                "risk": "风险表",
-                            },
-                            "stale_days": 7,
-                        },
-                        "constraints": {"remember_discovered_resources": True},
-                    },
-                }
-            ],
-            "final_payload": {"inspection_type": "fr02_task_data_gap"},
-        },
-    }
