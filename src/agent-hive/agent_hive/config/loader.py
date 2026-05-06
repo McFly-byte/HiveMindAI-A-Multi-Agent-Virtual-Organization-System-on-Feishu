@@ -1,12 +1,19 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
 
 import yaml
 from pydantic import ValidationError
 
-from agent_hive.config.defaults import DEFAULT_AGENTS_DIR, DEFAULT_MEMORY_DB, DEFAULT_RUN_DIR, DEFAULT_TRACE_DIR
+from agent_hive.config.defaults import (
+    DEFAULT_AGENTS_SUBDIR,
+    DEFAULT_MEMORY_DB,
+    DEFAULT_MULTI_AGENT_DIR,
+    DEFAULT_RUN_DIR,
+    DEFAULT_TRACE_DIR,
+)
 from agent_hive.config.env import load_dotenv_if_present
 from agent_hive.config.models import AgentConfig, RuntimeConfig
 from agent_hive.config.validator import ConfigValidationError, validate_runtime_config
@@ -14,6 +21,9 @@ from agent_hive.config.validator import ConfigValidationError, validate_runtime_
 
 class AgentConfigError(ValueError):
     pass
+
+
+_INCLUDE_PATTERN = re.compile(r"\{\{include:(.+?)\}\}")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -91,20 +101,37 @@ def load_agent_prompt(agent_config: AgentConfig) -> str:
     for path in paths:
         if not path.exists():
             raise AgentConfigError(f"prompt file not found: {path}")
-        chunks.append(path.read_text(encoding="utf-8"))
+        chunks.append(_render_prompt_with_includes(path, path.read_text(encoding="utf-8")))
     return "\n\n".join(chunks)
+
+
+def _render_prompt_with_includes(base_path: Path, text: str) -> str:
+    def _replace(match: re.Match[str]) -> str:
+        raw_target = match.group(1).strip()
+        include_path = Path(raw_target)
+        if not include_path.is_absolute():
+            include_path = (base_path.parent / include_path).resolve()
+        if not include_path.exists() or not include_path.is_file():
+            raise AgentConfigError(f"include file not found: {include_path}")
+        content = include_path.read_text(encoding="utf-8")
+        return f"\n\n# Included: {raw_target}\n{content}\n"
+
+    return _INCLUDE_PATTERN.sub(_replace, text)
 
 
 def load_runtime_config(
     project_root: Path | str | None = None,
     *,
-    agents_dir: Path | str = DEFAULT_AGENTS_DIR,
+    multi_agent_dir: Path | str = DEFAULT_MULTI_AGENT_DIR,
 ) -> RuntimeConfig:
     root = Path(project_root).resolve() if project_root is not None else Path.cwd().resolve()
     load_dotenv_if_present(root)
-    agents_root = Path(agents_dir)
-    if not agents_root.is_absolute():
-        agents_root = (root / agents_root).resolve()
+
+    system_dir = Path(multi_agent_dir)
+    if not system_dir.is_absolute():
+        system_dir = (root / system_dir).resolve()
+    agents_root = (system_dir / DEFAULT_AGENTS_SUBDIR).resolve()
+
     agents = load_all_agent_configs(agents_root, project_root=root)
     config = RuntimeConfig(
         project_root=root,

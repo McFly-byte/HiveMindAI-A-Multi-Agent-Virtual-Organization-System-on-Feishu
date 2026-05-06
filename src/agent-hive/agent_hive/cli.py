@@ -5,11 +5,12 @@ import asyncio
 import json
 from pathlib import Path
 
+from feishu_adapter.event_bridge import to_hive_event
+
 from agent_hive.config.env import load_dotenv_if_present
 from agent_hive.config.loader import load_runtime_config
 from agent_hive.events.models import HiveEvent
 from agent_hive.events.sources.cron_loader import load_cron_jobs
-from agent_hive.events.sources.feishu_im import FeishuIMEventSource
 from agent_hive.events.sources.schedule import ScheduledEventSource
 from agent_hive.events.sources.stdin import StdinEventSource
 from agent_hive.observability.logging import configure_logging, get_logger
@@ -37,13 +38,6 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--debug", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     serve.add_argument("--project-id", required=True)
     serve.add_argument("--stdin", action="store_true", help="Read newline-delimited HiveEvent JSON from stdin.")
-    serve.add_argument(
-        "--feishu-im",
-        action="store_true",
-        help="Start and bridge Feishu IM WebSocket adapter events.",
-    )
-    serve.add_argument("--target-agent", default="orchestrator")
-    serve.add_argument("--cron-dir", default="cron", help="Cron job directory (*.yaml/*.yml).")
     return parser
 
 
@@ -54,15 +48,13 @@ async def run_cli(argv: list[str] | None = None) -> int:
     configure_logging(debug=args.debug or None)
     logger.info("agent-hive command=%s project_root=%s", args.command, args.project_root)
     config = load_runtime_config(project_root)
-    logger.debug(
-        "runtime config loaded agents=%s memory_db=%s",
-        sorted(config.agents),
-        config.memory_db_path,
-    )
+    logger.debug("runtime config loaded agents=%s memory_db=%s", sorted(config.agents), config.memory_db_path)
+
     if args.command == "list-agents":
         for agent_id in sorted(config.agents):
             print(agent_id)
         return 0
+
     if args.command == "run":
         runtime = HiveRuntime.from_config(config)
         try:
@@ -73,43 +65,23 @@ async def run_cli(argv: list[str] | None = None) -> int:
                 target_agent_id=args.target_agent,
                 payload=payload if isinstance(payload, dict) else {"value": payload},
             )
-            logger.info(
-                "dispatch one-shot event event_id=%s event_type=%s target_agent=%s",
-                event.event_id,
-                event.event_type,
-                event.target_agent_id,
-            )
             result = await runtime.dispatch(event)
-            print(
-                json.dumps(
-                    {
-                        "root": result.root_output.model_dump(mode="json"),
-                        "children": [item.model_dump(mode="json") for item in result.child_outputs],
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            )
+            print(json.dumps({"root": result.root_output.model_dump(mode="json"), "children": [item.model_dump(mode="json") for item in result.child_outputs]}, ensure_ascii=False, indent=2))
             return 0 if result.root_session.status == "success" else 1
         finally:
             await runtime.shutdown()
+
     if args.command == "serve":
         runtime = HiveRuntime.from_config(config)
         daemon = EventDaemon(runtime)
         if args.stdin:
             daemon.add_source(StdinEventSource())
-        if args.feishu_im:
-            provider = runtime.providers.get("feishu")
-            provider.enable_im_websocket()  # type: ignore[attr-defined]
-            provider.load()  # type: ignore[attr-defined]
-            daemon.add_source(
-                FeishuIMEventSource(
-                    provider,  # type: ignore[arg-type]
-                    project_id=args.project_id,
-                    target_agent_id=args.target_agent,
-                )
-            )
-        for job in load_cron_jobs(project_root / args.cron_dir):
+
+        provider = runtime.providers.get("feishu")
+        provider.enable_im_websocket()  # type: ignore[attr-defined]
+        provider.load()  # type: ignore[attr-defined]
+
+        for job in load_cron_jobs(project_root / "multi_agents/default/cron"):
             daemon.add_source(
                 ScheduledEventSource(
                     name=job.name,
@@ -121,21 +93,27 @@ async def run_cli(argv: list[str] | None = None) -> int:
                     run_on_start=job.run_on_start,
                 )
             )
+
         if not daemon.sources:
-            raise SystemExit("serve requires at least one source: --stdin, --feishu-im, or cron jobs in --cron-dir")
-        logger.info(
-            "agent-hive daemon starting project_id=%s target_agent=%s sources=%s",
-            args.project_id,
-            args.target_agent,
-            [source.name for source in daemon.sources],
-        )
+            raise SystemExit("serve requires at least one source: --stdin or cron jobs in multi_agents/default/cron")
+
+        async def _bridge_feishu_events() -> None:
+            while True:
+                for raw_event in provider.drain_events():  # type: ignore[attr-defined]
+                    evt = to_hive_event(raw_event, project_id=args.project_id, target_agent_id="orchestrator")
+                    if evt is not None:
+                        await runtime.dispatch(HiveEvent.model_validate(evt))
+                await asyncio.sleep(0.5)
+
+        bridge_task = asyncio.create_task(_bridge_feishu_events())
         try:
             await daemon.run_forever()
         except (KeyboardInterrupt, asyncio.CancelledError):
-            logger.info("agent-hive daemon interrupted; shutting down")
             await daemon.stop()
             return 130
         finally:
+            bridge_task.cancel()
             await runtime.shutdown()
         return 0
+
     return 1

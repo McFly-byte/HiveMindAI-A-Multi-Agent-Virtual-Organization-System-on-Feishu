@@ -102,12 +102,14 @@ class FeishuProvider:
 
     provider_name = "feishu"
 
-    def __init__(self, modules: list[str] | None = None) -> None:
+    def __init__(self, modules: list[str] | None = None, *, event_sink: Callable[[dict[str, Any]], None] | None = None) -> None:
         self._registry = _BridgeRegistry()
         self._event_bus = _BridgeEventBus()
         self._modules = modules or DEFAULT_FEISHU_MODULES
         self._loaded = False
-        self._im_websocket_enabled = False
+        self._im_websocket_enabled = True
+        self._event_sink = event_sink
+        os.environ["FEISHU_ENABLE_IM_WS"] = "1"
 
     def enable_im_websocket(self) -> None:
         """Enable Feishu IM WS before adapter tools are registered.
@@ -163,4 +165,7 @@ class FeishuProvider:
         self._event_bus.events.clear()
         if events:
             logger.debug("drained Feishu adapter events count=%s", len(events))
+            if self._event_sink is not None:
+                for event in events:
+                    self._event_sink(event)
         return events

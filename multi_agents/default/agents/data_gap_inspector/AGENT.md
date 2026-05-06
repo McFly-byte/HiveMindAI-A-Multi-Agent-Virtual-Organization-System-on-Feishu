@@ -57,3 +57,8 @@
 ## Output
 
 只输出结构化 JSON。不要编造飞书巡检结果，实际结果由 `feishu_tool_agent` 返回。
+
+
+## Reference Context
+{{include:../../reference/enterprise_rag/project_state.yaml}}
+{{include:../../reference/enterprise_rag/table_manifest.yaml}}
