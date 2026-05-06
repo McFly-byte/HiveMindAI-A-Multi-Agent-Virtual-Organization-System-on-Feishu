@@ -1,50 +1,41 @@
-# HiveMindAI Agent Runtime
+# HiveMindAI Agent Hive
 
-这是一个基于飞书多维表格 Base 的多 Agent 虚拟项目办公室。当前仓库已经收敛到新的 `src/` 架构：`src/agent_runtime` 是唯一正式 agent loop，Feishu 能力和 Memory 能力都通过 `src/tool_integration` 注册为工具后再被 Agent 调用。
+一个基于飞书的通用 multi-agent runtime。当前新 runtime 位于 `src/agent-hive/agent_hive`，Agent 通过 `agents/*/agent.yaml` 注册。
 
-## 当前架构
+## 架构
 
 ```text
-scripts/run_mvp_demo_chain.py
-  -> agent_runtime.mvp.build_runtime_with_tool_integration()
-     -> AgentRuntime
-     -> ToolIntegrationExecutor
-        -> scan src/feishu_adapter      # Feishu tools
-        -> scan tool_integrations       # memory_tools + trace_tool
-     -> CompositeTraceSink
-        -> traces/*.jsonl
-        -> runtime/memory.db
+Feishu IM / Scheduled Event / stdin
+  -> EventDaemon
+  -> HiveRuntime
+  -> Orchestrator
+  -> Business Agents
+  -> feishu_tool_agent
+  -> src/feishu_adapter/*
 ```
 
-核心目录：
+核心边界：
 
-| 路径 | 作用 |
+- `orchestrator` 负责理解事件并分发给业务 agent。
+- 业务 agent 可以直接使用 memory。
+- 业务 agent 不能直接调用 Feishu tool。
+- 所有 Feishu API 调用必须委托给 `feishu_tool_agent`。
+- `feishu_tool_agent` 负责发现知识空间、Base、表、字段，并把发现结果写入 memory。
+
+## 目录
+
+| 路径 | 说明 |
 | --- | --- |
-| `src/agent_runtime/` | 正式 agent loop、session、事件、配置、质量门和 MVP handlers |
-| `src/agent_runtime/context.py` | `AgentContext`：运行时上下文窗口、scratchpad、memory 检索入口和 compact summary |
-| `src/agent_runtime/memory/` | SQLite/FTS memory store、session checkpoint、process log、document chunks、memory toolset |
-| `src/tool_integration/` | 工具注册、schema 校验、执行、事件与 job runtime |
-| `src/feishu_adapter/` | 飞书 API 工具封装，注册 `feishu_*` 工具 |
-| `tool_integrations/` | 仓库级工具，当前包含 `memory_tools.py` 和 `trace_tool.py` |
-| `agents/*/` | 每个 Agent 的 `AGENT.md` 点记忆和 `agent.yaml` 权限配置 |
-| `projects/enterprise_rag/` | 当前可运行项目的 `PROJECT.md`、项目状态和 Base 表 manifest |
-| `scripts/run_mvp_demo_chain.py` | MVP 链路入口：秘书 -> 风险 -> 追问 -> 周报 -> 协调器 |
+| `src/agent-hive/agent_hive` | 新 agent runtime |
+| `agents/*/agent.yaml` | Agent 注册配置 |
+| `agents/*/AGENT.md` | Agent prompt |
+| `src/feishu_adapter` | 现有 Feishu API adapter |
+| `runtime/memory.db` | 默认 memory 数据库 |
+| `tests/agent_hive` | 新 runtime 测试 |
 
-旧的 `pmo_mvp/` 本地 JSON demo 已移除。后续新能力不要再绕过 `src/agent_runtime` 和 `src/tool_integration`。
+## 环境变量
 
-## 安装
-
-请使用将要运行脚本的同一个 Python 解释器安装依赖：
-
-```bash
-python -m pip install -r requirements.txt
-# 或开发模式
-python -m pip install -e .
-```
-
-## 配置
-
-根目录 `.env` 会被运行脚本和工具执行器自动读取。最少需要：
+根目录 `.env` 会在启动时自动读取。
 
 ```bash
 FEISHU_APP_ID=...
@@ -52,84 +43,105 @@ FEISHU_APP_SECRET=...
 DEEPSEEK_API_KEY=...
 ```
 
-`projects/enterprise_rag/project_state.yaml` 和 `table_manifest.yaml` 可以直接填写 Base `app_token` / `table_id`，也可以使用 `${FEISHU_*}` 占位符并在 `.env` 中提供对应值。
-
-LLM 默认走 DeepSeek 的 OpenAI-compatible 接口：
+如果使用其他 OpenAI-compatible LLM：
 
 ```bash
-DEEPSEEK_API_KEY=...
-DEEPSEEK_BASE_URL=https://api.deepseek.com      # 可选，默认即此值
-HIVEMIND_LLM_MODEL=deepseek-chat                # 可选，默认即此模型
+HIVEMIND_LLM_API_KEY=...
+HIVEMIND_LLM_BASE_URL=...
 ```
 
-Coordinator 的 `think` 阶段默认必须调用 LLM 决策下一步 Agent；如需临时降级为规则兜底，可设置：
+## 安装
 
 ```bash
-HIVEMIND_COORDINATOR_LLM_OPTIONAL=1
+uv sync
 ```
 
-Memory 默认写入：
+## 常用命令
+
+列出 Agent：
+
+```bash
+PYTHONPATH=src:src/agent-hive uv run python -m agent_hive.main list-agents
+```
+
+启动常驻 agent loop，监听飞书 IM：
+
+```bash
+PYTHONPATH=src:src/agent-hive uv run python -m agent_hive.main --debug serve \
+  --project-id enterprise_rag \
+  --feishu-im
+```
+
+启动飞书 IM + FR-02 定时巡检：
+
+```bash
+PYTHONPATH=src:src/agent-hive uv run python -m agent_hive.main --debug serve \
+  --project-id enterprise_rag \
+  --feishu-im \
+  --fr02-inspection \
+  --fr02-interval-seconds 3600
+```
+
+手动发送一次事件：
+
+```bash
+PYTHONPATH=src:src/agent-hive uv run python -m agent_hive.main run \
+  --event-type fr02.inspection.requested \
+  --project-id enterprise_rag \
+  --target-agent orchestrator \
+  --payload '{"summary":"FR-02巡检","inspection_type":"fr02_task_data_gap"}'
+```
+
+## FR-02 巡检
+
+FR-02 用于发现：
+
+- 任务表和里程碑表中缺失负责人、截止时间、进度说明的记录。
+- 超期且长期未更新的任务或里程碑。
+- 会议纪要中提到的问题、风险、待办是否未同步到任务/风险表。
+
+默认目标：
+
+- 知识空间：`项目中枢`
+- Base：`enterprise_rag表`
+
+表发现逻辑：
+
+1. 先从 memory 复用已发现的资源。
+2. 查飞书知识空间，找到 Base app_token。
+3. 列出 Base 内所有表。
+4. 优先按名称匹配。
+5. 名称不匹配时读取字段 schema，自动识别任务表、里程碑表、会议纪要表、风险表。
+6. 将 app_token、table_id、字段识别结果和巡检结果写入 memory。
+
+## 测试
+
+```bash
+PYTHONPATH=src:src/agent-hive uv run pytest tests/agent_hive -q
+```
+
+如果本机 `uv` 缓存权限有问题，也可以在已安装依赖的环境中跑：
+
+```bash
+PYTHONPATH=src:src/agent-hive python -m pytest tests/agent_hive -q
+```
+
+## 调试
+
+打开 debug 日志：
+
+```bash
+AGENT_HIVE_DEBUG=1
+```
+
+或使用 CLI 参数：
+
+```bash
+--debug
+```
+
+退出常驻进程：
 
 ```text
-runtime/memory.db
+Ctrl+C
 ```
-
-可用环境变量覆盖：
-
-```bash
-HIVEMIND_MEMORY_DB_PATH=/absolute/path/to/memory.db
-```
-
-## 运行
-
-执行测试：
-
-```bash
-python -m pytest tests/ -q
-```
-
-运行 MVP 链路：
-
-```bash
-python scripts/run_mvp_demo_chain.py --skip-coordinator-write
-```
-
-允许协调器写回 Base 时去掉 `--skip-coordinator-write`：
-
-```bash
-python scripts/run_mvp_demo_chain.py
-```
-
-缺少飞书环境变量时脚本会以退出码 `2` 结束并打印缺失项；不会用 mock 伪造主链路结果。
-
-## Memory Tools
-
-`tool_integrations/memory_tools.py` 会把 `src/agent_runtime/memory` 中的工具注册进正式工具体系，调用路径与 Feishu tools 一致：
-
-```text
-Agent handler
-  -> ToolIntegrationExecutor.call_tool()
-  -> ToolRuntime.invoke()
-  -> MemoryToolset / MemoryStore
-  -> session.steps 审计记录
-```
-
-已暴露的 memory tools：
-
-- `memory_write`、`memory_search`、`memory_get`、`memory_reflect`
-- `memory_weight_update`、`memory_evict`
-- `profile_write`、`profile_read`
-- `session_start`、`session_finish`、`session_get`、`session_list`
-- `process_log`、`process_search`
-- `project_context_upsert`、`project_context_get`
-- `doc_ingest`、`doc_search`
-
-详细说明见 [`src/agent_runtime/memory/README.md`](src/agent_runtime/memory/README.md)。
-
-## 设计边界
-
-- `agent_runtime.session.AgentSession` 是运行时热状态，不存在于 SQLite 中。
-- `agent_runtime.context.AgentContext` 是上下文管理机制，负责上下文预算和 compact summary。
-- `agent_runtime.memory.AgentSessionCheckpoint` 是 SQLite checkpoint，用于审计、恢复和跨 run 查询。
-- 业务 Agent 不直接调用飞书 SDK、不直接访问 SQLite；统一走 `ToolIntegrationExecutor`。
-- Feishu Base 是业务事实源；Memory 是运行上下文、过程日志和经验沉淀，不替代 Base。
