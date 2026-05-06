@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from agent_runtime.memory import MemoryStore, MemoryToolset, NullVectorBackend
+from agent_hive.memory.runtime_compat import MemoryStore, MemoryToolset, NullVectorBackend
 
 
 class MemoryManager:
