@@ -31,12 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run")
     run.add_argument("--debug", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     run.add_argument("--event-type", required=True)
-    run.add_argument("--project-id", required=True)
     run.add_argument("--target-agent")
     run.add_argument("--payload", default="{}")
     serve = sub.add_parser("serve")
     serve.add_argument("--debug", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    serve.add_argument("--project-id", required=True)
     serve.add_argument("--stdin", action="store_true", help="Read newline-delimited HiveEvent JSON from stdin.")
     return parser
 
@@ -61,7 +59,7 @@ async def run_cli(argv: list[str] | None = None) -> int:
             payload = json.loads(args.payload)
             event = HiveEvent(
                 event_type=args.event_type,
-                project_id=args.project_id,
+                project_id=default_project_id,
                 target_agent_id=args.target_agent,
                 payload=payload if isinstance(payload, dict) else {"value": payload},
             )
@@ -86,7 +84,7 @@ async def run_cli(argv: list[str] | None = None) -> int:
                 ScheduledEventSource(
                     name=job.name,
                     event_type=job.event_type,
-                    project_id=args.project_id,
+                    project_id=default_project_id,
                     target_agent_id=job.target_agent_id,
                     payload_factory=lambda payload=job.payload: dict(payload),
                     interval_seconds=job.interval_seconds,
@@ -100,7 +98,7 @@ async def run_cli(argv: list[str] | None = None) -> int:
         async def _bridge_feishu_events() -> None:
             while True:
                 for raw_event in provider.drain_events():  # type: ignore[attr-defined]
-                    evt = to_hive_event(raw_event, project_id=args.project_id, target_agent_id="orchestrator")
+                    evt = to_hive_event(raw_event, project_id=default_project_id, target_agent_id="orchestrator")
                     if evt is not None:
                         await runtime.dispatch(HiveEvent.model_validate(evt))
                 await asyncio.sleep(0.5)
@@ -117,3 +115,4 @@ async def run_cli(argv: list[str] | None = None) -> int:
         return 0
 
     return 1
+    default_project_id = "global"
