@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 管理面板</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-gradient-start: #e8eef9;
+    --bg-gradient-end: #f4f0f8;
+    --surface: #ffffff;
+    --surface-elevated: rgba(255, 255, 255, 0.92);
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.12);
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: rgba(37, 99, 235, 0.1);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.12);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 24px rgba(15, 23, 42, 0.08);
+    --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "Consolas", "Cascadia Code", ui-monospace, monospace;
+    --header-h: 64px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font);
+    margin: 0;
+    color: var(--text);
+    min-height: 100vh;
+    background: linear-gradient(155deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 48%, #eef2ff 100%);
+    background-attachment: fixed;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface-elevated);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .app-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.875rem 1.5rem;
+    min-height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-text h1 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text);
+  }
+
+  .brand-text p {
+    margin: 0.15rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--success);
+    background: var(--success-soft);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+  }
+
+  .status-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status-pill::before { animation: none; }
+  }
+
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem 2.5rem;
+  }
+
+  .tabs-wrap {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.5rem 0.5rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 1 1 auto;
+    min-width: max-content;
+    padding: 0.75rem 1.125rem;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    transition: color 0.2s, background 0.2s;
+    position: relative;
+  }
+
+  .tab:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .tab.active {
+    color: var(--primary);
+    background: linear-gradient(180deg, var(--primary-soft) 0%, transparent 100%);
+    box-shadow: inset 0 -2px 0 var(--primary);
+  }
+
+  .tab-content {
+    padding: 1.5rem;
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-content { animation: none; }
+  }
+
+  .grid-agents {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .grid-agents {
+      grid-template-columns: 1fr 1fr;
+    }
+    .grid-agents .card--span {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.375rem;
+    margin-bottom: 0;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .card h2 {
+    margin: 0 0 1rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card h2 .icon-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.85;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .agent-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .agent-li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: #f8fafc;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .agent-li-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .agent-li-name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+  }
+
+  .badge--on {
+    color: var(--success);
+    background: var(--success-soft);
+  }
+
+  .badge--off {
+    color: var(--text-subtle);
+    background: #f1f5f9;
+  }
+
+  .active-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  }
+
+  .empty-hint {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-subtle);
+    font-size: 0.875rem;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: #fafbfc;
+  }
+
+  /* Chat */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  #chat-window {
+    height: min(360px, 52vh);
+    overflow-y: auto;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .msg {
+    max-width: 88%;
+    padding: 0.65rem 0.9rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-break: break-word;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .msg--user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg--agent {
+    align-self: flex-start;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-meta {
+    display: block;
+    font-size: 0.6875rem;
+    opacity: 0.85;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .msg--user .msg-meta {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .msg--agent .msg-meta {
+    color: var(--text-muted);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.65rem;
+    align-items: stretch;
+  }
+
+  #chat-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    font-family: inherit;
+    font-size: 0.875rem;
+    background: var(--surface);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #chat-input::placeholder {
+    color: var(--text-subtle);
+  }
+
+  #chat-input:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+
+  #chat-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  .input-hint {
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    margin: 0;
+  }
+
+  .tab-hint {
+    margin: -0.35rem 0 0.85rem;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    line-height: 1.45;
+  }
+
+  /* Logs */
+  .log-window, .queue-log-window {
+    height: min(300px, 40vh);
+    overflow-y: auto;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.8125rem;
+    font-family: var(--mono);
+    line-height: 1.55;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .queue-log-window {
+    height: min(360px, 48vh);
+  }
+
+  .log-line, .event-line {
+    padding: 0.35rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+  }
+
+  .event-line--enqueue {
+    border-left-color: #f59e0b;
+  }
+
+  .event-line--processed {
+    border-left-color: #22c55e;
+  }
+
+  .event-line--system {
+    border-left-color: #64748b;
+  }
+
+  .log-line time, .event-line time {
+    color: #64748b;
+    margin-right: 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .event-line .ev-tag {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-right: 0.5rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  .event-line--enqueue .ev-tag {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.2);
+  }
+
+  .event-line--processed .ev-tag {
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.18);
+  }
+
+  .event-line--system .ev-tag {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.15);
+  }
+
+  .log-line + .log-line,
+  .event-line + .event-line {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .event-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 520px) {
+    .event-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .event-stat-card {
+    padding: 1rem 1.125rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+
+  .event-stat-card--pending {
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  }
+
+  .event-stat-card--total {
+    border-color: rgba(37, 99, 235, 0.25);
+    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .event-stat-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .event-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .event-stat-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+  }
+
+  .logs-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 900px) {
+    .logs-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Scrollbars */
+  .agent-ul::-webkit-scrollbar,
+  .log-window::-webkit-scrollbar,
+  .queue-log-window::-webkit-scrollbar,
+  #chat-window::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .agent-ul::-webkit-scrollbar-thumb,
+  .log-window::-webkit-scrollbar-thumb,
+  .queue-log-window::-webkit-scrollbar-thumb,
+  #chat-window::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 4px;
+  }
+
+  .log-window::-webkit-scrollbar-thumb,
+  .queue-log-window::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">HM</div>
+      <div class="brand-text">
+        <h1>Agent 管理面板</h1>
+        <p>多 Agent 运行时 · 巡检与对话演示</p>
+      </div>
+    </div>
+    <div class="status-pill" role="status" aria-live="polite">演示环境已连接</div>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="tabs-wrap">
+    <div class="tabs" role="tablist" aria-label="主功能分区">
+      <button type="button" class="tab active" role="tab" aria-selected="true" aria-controls="agents" id="tab-agents" data-tab="agents">Agents</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="chat" id="tab-chat" data-tab="chat">秘书聊天</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="logs" id="tab-logs" data-tab="logs">日志</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="events" id="tab-events" data-tab="events">事件队列</button>
+    </div>
+
+    <div class="tab-content active" id="agents" role="tabpanel" aria-labelledby="tab-agents">
+      <div class="grid-agents">
+        <div class="card card--span">
+          <h2><span class="icon-dot" aria-hidden="true"></span> 概览</h2>
+          <div class="stat-row">
+            <span class="stat-value" id="agent-count">0</span>
+            <span class="stat-label">已注册的 Agent 总数</span>
+          </div>
+        </div>
+        <div class="card" id="agent-list">
+          <h2><span class="icon-dot" aria-hidden="true"></span> 所有 Agents</h2>
+          <ul class="agent-ul" id="agent-list-ul"></ul>
+        </div>
+        <div class="card" id="active-agents">
+          <h2><span class="icon-dot" aria-hidden="true"></span> 活跃 Agents</h2>
+          <ul class="agent-ul" id="active-agents-ul"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> 秘书 Agent 后台聊天</h2>
+        <div class="chat-area">
+          <div id="chat-window" aria-live="polite" aria-relevant="additions"></div>
+          <div class="input-row">
+            <input type="text" id="chat-input" placeholder="输入消息，按 Enter 发送…" autocomplete="off" aria-label="聊天输入">
+          </div>
+          <p class="input-hint">本页为演示数据；接入后端后可在此对接真实会话流。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+      <div class="logs-grid">
+        <div class="card">
+          <h2><span class="icon-dot" aria-hidden="true"></span> Agent 日志</h2>
+          <div class="log-window" id="agent-log" role="log" aria-label="Agent 日志"></div>
+        </div>
+        <div class="card">
+          <h2><span class="icon-dot" aria-hidden="true"></span> 工具操作日志</h2>
+          <div class="log-window" id="tool-log" role="log" aria-label="工具日志"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="events" role="tabpanel" aria-labelledby="tab-events" hidden>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> 事件队列</h2>
+        <div
+          class="event-stats"
+          id="event-queue-stats"
+          role="group"
+          aria-label="队列统计"
+          aria-live="polite"
+        >
+          <div class="event-stat-card event-stat-card--pending">
+            <span class="event-stat-label">未处理</span>
+            <span class="event-stat-value" id="event-pending-count">0</span>
+            <p class="event-stat-hint">当前仍在队列中、等待消费的事件</p>
+          </div>
+          <div class="event-stat-card event-stat-card--total">
+            <span class="event-stat-label">事件总数</span>
+            <span class="event-stat-value" id="event-total-count">0</span>
+            <p class="event-stat-hint">自本会话以来累计入队次数</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> 队列日志</h2>
+        <p class="tab-hint">记录入队、出队与处理结果，便于对照统计数字排查积压。</p>
+        <div class="queue-log-window" id="event-queue-log" role="log" aria-label="事件队列日志"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.tab;
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      contents.forEach(c => {
+        const on = c.id === id;
+        c.classList.toggle('active', on);
+        c.hidden = !on;
+      });
+    });
+  });
+
+  const agents = [
+    { id: 1, name: 'Agent Alpha', active: true },
+    { id: 2, name: 'Agent Beta', active: false },
+    { id: 3, name: 'Agent Gamma', active: true },
+  ];
+
+  const agentLogEl = document.getElementById('agent-log');
+  const toolLogEl = document.getElementById('tool-log');
+  const eventQueueLogEl = document.getElementById('event-queue-log');
+  const eventPendingEl = document.getElementById('event-pending-count');
+  const eventTotalEl = document.getElementById('event-total-count');
+  const agentListEl = document.getElementById('agent-list-ul');
+  const activeAgentsEl = document.getElementById('active-agents-ul');
+  const agentCountEl = document.getElementById('agent-count');
+  const chatWindow = document.getElementById('chat-window');
+  const chatInput = document.getElementById('chat-input');
+
+  function updateAgents() {
+    agentCountEl.textContent = String(agents.length);
+    agentListEl.innerHTML = '';
+    activeAgentsEl.innerHTML = '';
+
+    agents.forEach(a => {
+      const li = document.createElement('li');
+      li.className = 'agent-li';
+      li.innerHTML =
+        '<div class="agent-li-name"><span>' + escapeHtml(a.name) + '</span></div>' +
+        '<span class="badge ' + (a.active ? 'badge--on' : 'badge--off') + '">' +
+        (a.active ? '运行中' : '空闲') + '</span>';
+      agentListEl.appendChild(li);
+
+      if (a.active) {
+        const liActive = document.createElement('li');
+        liActive.className = 'agent-li';
+        liActive.innerHTML =
+          '<div class="agent-li-name"><span class="active-dot" aria-hidden="true"></span><span>' +
+          escapeHtml(a.name) + '</span></div>';
+        activeAgentsEl.appendChild(liActive);
+      }
+    });
+
+    if (!agents.length) {
+      agentListEl.innerHTML = '<li class="empty-hint">暂无 Agent</li>';
+    }
+    const activeN = agents.filter(a => a.active).length;
+    if (!activeN) {
+      activeAgentsEl.innerHTML = '<li class="empty-hint">当前没有活跃 Agent</li>';
+    }
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function appendLogLine(container, timeStr, text, className) {
+    const row = document.createElement('div');
+    row.className = className;
+    const t = document.createElement('time');
+    t.dateTime = new Date().toISOString();
+    t.textContent = '[' + timeStr + ']';
+    row.appendChild(t);
+    row.appendChild(document.createTextNode(' ' + text));
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function logAgent(message) {
+    appendLogLine(agentLogEl, new Date().toLocaleTimeString(), message, 'log-line');
+  }
+
+  function logTool(message) {
+    appendLogLine(toolLogEl, new Date().toLocaleTimeString(), message, 'log-line');
+  }
+
+  let eventSeq = 0;
+  const pendingEvents = [];
+  let totalEnqueued = 0;
+
+  function updateEventStats() {
+    eventPendingEl.textContent = String(pendingEvents.length);
+    eventTotalEl.textContent = String(totalEnqueued);
+  }
+
+  function appendQueueLog(level, tagText, bodyText) {
+    const row = document.createElement('div');
+    row.className = 'event-line event-line--' + level;
+    const timeStr = new Date().toLocaleTimeString();
+    const t = document.createElement('time');
+    t.dateTime = new Date().toISOString();
+    t.textContent = '[' + timeStr + ']';
+    const tag = document.createElement('span');
+    tag.className = 'ev-tag';
+    tag.textContent = tagText;
+    row.appendChild(t);
+    row.appendChild(tag);
+    row.appendChild(document.createTextNode(bodyText));
+    eventQueueLogEl.appendChild(row);
+    eventQueueLogEl.scrollTop = eventQueueLogEl.scrollHeight;
+  }
+
+  function enqueueEventFromAgent(agentName) {
+    eventSeq += 1;
+    totalEnqueued += 1;
+    const id = 'E-' + String(eventSeq).padStart(4, '0');
+    const summary = agentName + ' 加入事件队列';
+    pendingEvents.push({ id: id, summary: summary });
+    appendQueueLog(
+      'enqueue',
+      '入队',
+      ' id=' + id + ' | ' + summary + ' | 未处理=' + pendingEvents.length + ' | 累计入队=' + totalEnqueued
+    );
+    updateEventStats();
+  }
+
+  function tryProcessNextEvent() {
+    if (!pendingEvents.length) return;
+    const ev = pendingEvents.shift();
+    appendQueueLog(
+      'processed',
+      '已处理',
+      ' id=' + ev.id + ' | ' + ev.summary + ' | 剩余未处理=' + pendingEvents.length
+    );
+    updateEventStats();
+  }
+
+  appendQueueLog('system', '系统', ' 队列就绪，等待事件入队…');
+  updateEventStats();
+
+  function chatBubble(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--' + (role === 'user' ? 'user' : 'agent');
+    const meta = document.createElement('span');
+    meta.className = 'msg-meta';
+    meta.textContent = role === 'user' ? '我' : '秘书 Agent';
+    const body = document.createElement('span');
+    body.textContent = text;
+    wrap.appendChild(meta);
+    wrap.appendChild(body);
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  chatInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const raw = chatInput.value.trim();
+    if (!raw) return;
+    e.preventDefault();
+    chatBubble('user', raw);
+    chatInput.value = '';
+    const reply = '收到「' + raw + '」（演示回复）';
+    setTimeout(() => {
+      chatBubble('agent', reply);
+      logAgent('Agent 回复了消息: ' + raw);
+    }, 450);
+  });
+
+  function simulateActivity() {
+    const randomAgent = agents[Math.floor(Math.random() * agents.length)];
+    logTool(randomAgent.name + ' 使用了工具 X');
+    enqueueEventFromAgent(randomAgent.name);
+  }
+
+  updateAgents();
+  setInterval(simulateActivity, 3000);
+  setInterval(function () {
+    if (Math.random() < 0.62) tryProcessNextEvent();
+  }, 4000);
+})();
+</script>
+
+</body>
+</html>
