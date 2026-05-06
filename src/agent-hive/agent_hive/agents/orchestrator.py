@@ -111,7 +111,7 @@ class OrchestratorAgent(BaseAgent):
             '  "thought": "short routing rationale",\n'
             '  "summary": "short operator-readable summary",\n'
             '  "actions": [\n'
-            '    {"action_type":"run_agent","target_agent_id":"project_secretary|data_gap_inspector|risk_analysis|followup|weekly_report",'
+            '    {"action_type":"run_agent","target_agent_id":"project_secretary|data_gap_inspector|risk_analysis|followup|resource_coordination|weekly_report|project_retrospective",'
             '"payload":{"summary":"why this agent should run","use_llm":true},"reason":"why"}\n'
             "  ],\n"
             '  "tool_intents": []\n'
@@ -122,7 +122,11 @@ class OrchestratorAgent(BaseAgent):
             "- Do not call Feishu tools directly. If a direct Feishu intent is absolutely necessary, emit a tool_intent.\n"
             "- For ordinary Feishu chat messages, route to project_secretary unless the request clearly matches another agent.\n"
             "- For event_type=fr02.inspection.requested, route to data_gap_inspector and preserve the source payload.\n"
-            "- Use risk_analysis for risk/issue/blocker requests, followup for missing info/follow-up tracking, weekly_report for reports.\n"
+            "- For event_type=resource.coordination.requested, route to resource_coordination.\n"
+            "- For event_type in project.retrospective.requested|project.lifecycle.completed, route to project_retrospective.\n"
+            "- Use risk_analysis for risk/issue/blocker requests, followup for missing info/follow-up tracking, "
+            "resource_coordination for capacity/priority/escalation proposals after risks are known, "
+            "weekly_report for reports, project_retrospective for post-project lessons learned.\n"
         )
 
 
@@ -139,6 +143,8 @@ def _available_business_agents(context: AgentContext) -> list[dict[str, str]]:
         {"agent_id": "risk_analysis", "description": "risk, issue, blocker, abnormal signal analysis"},
         {"agent_id": "followup", "description": "follow-up questions and missing information tracking"},
         {"agent_id": "weekly_report", "description": "weekly status/report generation"},
+        {"agent_id": "resource_coordination", "description": "resource load, priority reprioritization, escalation proposals for high risks"},
+        {"agent_id": "project_retrospective", "description": "post-project retrospective, root causes, governance recommendations"},
     ]
 
 
@@ -212,6 +218,10 @@ def _fallback_actions(payload: dict[str, Any], *, event_type: str) -> list[Orche
         target = str(payload["target_agent_id"])
     elif event_type == "fr02.inspection.requested":
         target = "data_gap_inspector"
+    elif event_type == "resource.coordination.requested":
+        target = "resource_coordination"
+    elif event_type in {"project.retrospective.requested", "project.lifecycle.completed"}:
+        target = "project_retrospective"
     elif event_type == "feishu.im.message.received":
         target = _classify_feishu_text(str(payload.get("text") or ""))
     else:
@@ -232,6 +242,10 @@ def _classify_feishu_text(text: str) -> str:
         return "risk_analysis"
     if any(word in text for word in ("周报", "日报", "报告", "汇总")) or "report" in lowered:
         return "weekly_report"
+    if any(word in text for word in ("复盘", "结项", "回顾", "经验教训", "总结沉淀")):
+        return "project_retrospective"
+    if any(word in text for word in ("协调", "资源", "负载", "优先级", "升级", "调配", "人力")):
+        return "resource_coordination"
     if any(word in text for word in ("跟进", "追问", "补充", "缺少")) or "follow" in lowered:
         return "followup"
     return "project_secretary"

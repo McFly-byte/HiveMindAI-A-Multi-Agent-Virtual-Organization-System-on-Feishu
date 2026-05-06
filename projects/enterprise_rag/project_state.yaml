@@ -6,9 +6,12 @@ default_time_range_days: 14
 allowed_agents:
 - coordinator
 - project_secretary
+- data_gap_inspector
 - risk_analysis
 - followup
+- resource_coordination
 - weekly_report
+- project_retrospective
 members:
 - name: 张三
   role_type: 项目经理

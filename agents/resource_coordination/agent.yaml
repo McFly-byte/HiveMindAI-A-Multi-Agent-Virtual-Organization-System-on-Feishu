@@ -1,9 +1,9 @@
-agent_id: weekly_report
+agent_id: resource_coordination
 role: business_agent
 entrypoint: llm_agent
-display_name: 周报 Agent
-description: 基于项目画像、风险候选和追问闭环情况生成管理层可读周报草稿；Feishu 操作必须委托。
-workspace_path: agents/weekly_report
+display_name: 资源协调 Agent
+description: FR-05 风险处置与资源协调；基于项目优先级、负责人负载与风险列表输出调整/升级建议；Feishu 操作必须委托。
+workspace_path: agents/resource_coordination
 prompt:
   system: AGENT.md
   shared:
@@ -13,12 +13,12 @@ prompt:
 model:
   provider: deepseek
   name: deepseek-chat
-  temperature: 0.2
+  temperature: 0.15
   max_tokens: 4096
   timeout_seconds: 60
   json_mode: true
 runtime_limits:
-  max_steps: 4
+  max_steps: 5
   max_child_runs: 4
   timeout_seconds: 180
   max_retries: 2
@@ -42,11 +42,10 @@ tool_access:
 orchestration:
   subscribes:
     - followup.generated
-    - resource.coordination.completed
-    - weekly_report.requested
+    - resource.coordination.requested
   emits:
-    - weekly_report.generated
-  priority: 20
+    - resource.coordination.completed
+  priority: 26
   max_parallel_runs: 1
-input_schema: WeeklyReportInput
-output_schema: WeeklyReportOutput
+input_schema: ResourceCoordinationInput
+output_schema: ResourceCoordinationOutput

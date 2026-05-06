@@ -1,9 +1,9 @@
-agent_id: weekly_report
+agent_id: project_retrospective
 role: business_agent
 entrypoint: llm_agent
-display_name: 周报 Agent
-description: 基于项目画像、风险候选和追问闭环情况生成管理层可读周报草稿；Feishu 操作必须委托。
-workspace_path: agents/weekly_report
+display_name: 复盘 Agent
+description: FR-08 项目复盘与经验沉淀；汇总延期、变更、返工与风险滞后点，输出复盘报告与治理建议；Feishu 操作必须委托。
+workspace_path: agents/project_retrospective
 prompt:
   system: AGENT.md
   shared:
@@ -18,9 +18,9 @@ model:
   timeout_seconds: 60
   json_mode: true
 runtime_limits:
-  max_steps: 4
+  max_steps: 5
   max_child_runs: 4
-  timeout_seconds: 180
+  timeout_seconds: 240
   max_retries: 2
 memory:
   enabled: true
@@ -41,12 +41,11 @@ tool_access:
     feishu: feishu_tool_agent
 orchestration:
   subscribes:
-    - followup.generated
-    - resource.coordination.completed
-    - weekly_report.requested
+    - project.retrospective.requested
+    - project.lifecycle.completed
   emits:
-    - weekly_report.generated
-  priority: 20
+    - retrospective.completed
+  priority: 15
   max_parallel_runs: 1
-input_schema: WeeklyReportInput
-output_schema: WeeklyReportOutput
+input_schema: ProjectRetrospectiveInput
+output_schema: ProjectRetrospectiveOutput
