@@ -222,18 +222,381 @@
     .tab-content { animation: none; }
   }
 
-  .grid-agents {
-    display: grid;
-    gap: 1.25rem;
+  /* Agents tab: 职责 Dashboard */
+  .dash-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
   }
 
-  @media (min-width: 768px) {
-    .grid-agents {
-      grid-template-columns: 1fr 1fr;
+  .dash-hero {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (min-width: 880px) {
+    .dash-hero {
+      grid-template-columns: 1.05fr 1fr;
+      align-items: center;
     }
-    .grid-agents .card--span {
-      grid-column: 1 / -1;
+  }
+
+  .dash-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin: 0 0 0.4rem;
+  }
+
+  .dash-hero-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1.25;
+  }
+
+  .dash-hero-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    max-width: 38rem;
+  }
+
+  .dash-hero-footnote {
+    margin: 0.85rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    line-height: 1.5;
+  }
+
+  .dash-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.35rem;
+    padding: 0.9rem 1rem;
+    background: rgba(37, 99, 235, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(37, 99, 235, 0.14);
+  }
+
+  .dash-flow__step {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .dash-flow__arrow {
+    color: var(--text-subtle);
+    font-size: 0.8125rem;
+    user-select: none;
+    padding: 0 0.1rem;
+  }
+
+  .dash-agent-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 720px) {
+    .dash-agent-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
+  }
+
+  .dash-agent-card {
+    --accent: var(--primary);
+    position: relative;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 1.35rem 1.4rem 1.2rem;
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-agent-card {
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+  }
+
+  .dash-agent-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  }
+
+  .dash-agent-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-agent-card:hover {
+      transform: none;
+    }
+  }
+
+  .dash-agent-card--secretary {
+    --accent: #2563eb;
+  }
+
+  .dash-agent-card--risk {
+    --accent: #ea580c;
+  }
+
+  .dash-agent-card--followup {
+    --accent: #7c3aed;
+  }
+
+  .dash-agent-card--weekly {
+    --accent: #0d9488;
+  }
+
+  .dash-agent-card__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .dash-agent-card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 0.9375rem;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--accent);
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.12);
+  }
+
+  .dash-agent-card__name {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .dash-agent-card__tag {
+    display: inline-block;
+    margin-top: 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 0.22rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .dash-agent-card__lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .dash-agent-card__live {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid var(--border);
+  }
+
+  .dash-live__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .dash-live__label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .dash-live__badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .dash-live__badge--idle {
+    background: #e2e8f0;
+    color: #475569;
+  }
+
+  .dash-live__badge--busy {
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.14);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+    animation: liveBusy 1.25s ease-in-out infinite;
+  }
+
+  @keyframes liveBusy {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-live__badge--busy {
+      animation: none;
+    }
+  }
+
+  .dash-agent-card--risk .dash-live__badge--busy {
+    color: #c2410c;
+    background: rgba(234, 88, 12, 0.14);
+    box-shadow: 0 0 0 1px rgba(234, 88, 12, 0.22);
+  }
+
+  .dash-agent-card--followup .dash-live__badge--busy {
+    color: #6d28d9;
+    background: rgba(124, 58, 237, 0.14);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.22);
+  }
+
+  .dash-agent-card--weekly .dash-live__badge--busy {
+    color: #0f766e;
+    background: rgba(13, 148, 136, 0.14);
+    box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.22);
+  }
+
+  .dash-live__detail {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .dash-live__meta {
+    margin: 0.4rem 0 0;
+    font-size: 0.6875rem;
+    color: var(--text-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-agent-card__history {
+    margin: 0 0 0.35rem;
+  }
+
+  .dash-history__title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .dash-history__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 176px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .dash-history__item {
+    margin: 0;
+    padding: 0.5rem 0.55rem;
+    background: #f1f5f9;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent);
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .dash-history__item time {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--text-subtle);
+    margin-bottom: 0.28rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-history__text {
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .dash-history__empty {
+    margin: 0;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    text-align: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: #fafbfc;
+    line-height: 1.45;
+  }
+
+  .dash-history__empty[hidden] {
+    display: none;
+  }
+
+  .dash-agent-card__footer {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .dash-chip {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.28rem 0.55rem;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    line-height: 1.3;
   }
 
   .card {
@@ -268,101 +631,6 @@
     border-radius: 50%;
     background: var(--primary);
     opacity: 0.85;
-  }
-
-  .stat-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    line-height: 1;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .agent-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 240px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .agent-li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    background: #f8fafc;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .agent-li-name {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-  }
-
-  .agent-li-name span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .badge {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0.2rem 0.45rem;
-    border-radius: 6px;
-  }
-
-  .badge--on {
-    color: var(--success);
-    background: var(--success-soft);
-  }
-
-  .badge--off {
-    color: var(--text-subtle);
-    background: #f1f5f9;
-  }
-
-  .active-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--success);
-    flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
-  }
-
-  .empty-hint {
-    padding: 2rem 1rem;
-    text-align: center;
-    color: var(--text-subtle);
-    font-size: 0.875rem;
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-sm);
-    background: #fafbfc;
   }
 
   /* Chat */
@@ -609,7 +877,7 @@
   }
 
   /* Scrollbars */
-  .agent-ul::-webkit-scrollbar,
+  .dash-history__list::-webkit-scrollbar,
   .log-window::-webkit-scrollbar,
   .queue-log-window::-webkit-scrollbar,
   #chat-window::-webkit-scrollbar {
@@ -617,7 +885,7 @@
     height: 8px;
   }
 
-  .agent-ul::-webkit-scrollbar-thumb,
+  .dash-history__list::-webkit-scrollbar-thumb,
   .log-window::-webkit-scrollbar-thumb,
   .queue-log-window::-webkit-scrollbar-thumb,
   #chat-window::-webkit-scrollbar-thumb {
@@ -649,28 +917,147 @@
 <div class="shell">
   <div class="tabs-wrap">
     <div class="tabs" role="tablist" aria-label="主功能分区">
-      <button type="button" class="tab active" role="tab" aria-selected="true" aria-controls="agents" id="tab-agents" data-tab="agents">Agents</button>
+      <button type="button" class="tab active" role="tab" aria-selected="true" aria-controls="agents" id="tab-agents" data-tab="agents">职责看板</button>
       <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="chat" id="tab-chat" data-tab="chat">秘书聊天</button>
       <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="logs" id="tab-logs" data-tab="logs">日志</button>
       <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="events" id="tab-events" data-tab="events">事件队列</button>
     </div>
 
     <div class="tab-content active" id="agents" role="tabpanel" aria-labelledby="tab-agents">
-      <div class="grid-agents">
-        <div class="card card--span">
-          <h2><span class="icon-dot" aria-hidden="true"></span> 概览</h2>
-          <div class="stat-row">
-            <span class="stat-value" id="agent-count">0</span>
-            <span class="stat-label">已注册的 Agent 总数</span>
+      <div class="dash-layout">
+        <section class="dash-hero" aria-labelledby="dash-hero-heading">
+          <div>
+            <p class="dash-kicker">虚拟项目办公室 · Dashboard</p>
+            <h2 class="dash-hero-title" id="dash-hero-heading">业务 Agent 在做什么？</h2>
+            <p class="dash-hero-desc">
+              四个面向 PMO 的业务 Agent 分工明确：从 Base 里发现过程数据问题，到风险、督办与管理层汇报一脉相承。
+              协调与写回策略由内部 Coordinator 编排。
+            </p>
+            <p class="dash-hero-footnote">数据事实源：飞书多维表格（Projects / Tasks / Milestones / Risks / FollowUps / WeeklyReports 等）。</p>
           </div>
-        </div>
-        <div class="card" id="agent-list">
-          <h2><span class="icon-dot" aria-hidden="true"></span> 所有 Agents</h2>
-          <ul class="agent-ul" id="agent-list-ul"></ul>
-        </div>
-        <div class="card" id="active-agents">
-          <h2><span class="icon-dot" aria-hidden="true"></span> 活跃 Agents</h2>
-          <ul class="agent-ul" id="active-agents-ul"></ul>
+          <div class="dash-flow" role="list" aria-label="协作顺序">
+            <span class="dash-flow__step" role="listitem">① 巡检与缺口</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">② 风险识别</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">③ 追问督办</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">④ 周报与结论</span>
+          </div>
+        </section>
+
+        <div class="dash-agent-grid">
+          <article class="dash-agent-card dash-agent-card--secretary">
+            <div class="dash-agent-card__top">
+              <div class="dash-agent-card__icon" aria-hidden="true">秘</div>
+              <div>
+                <h3 class="dash-agent-card__name">项目秘书 Agent</h3>
+                <span class="dash-agent-card__tag">过程巡检</span>
+              </div>
+            </div>
+            <p class="dash-agent-card__lead">对照 Base 中的任务与里程碑，持续发现「该填未填、该更未更」的信号，并把可追问点送进下游。</p>
+            <div class="dash-agent-card__live" aria-live="polite">
+              <div class="dash-live__row">
+                <span class="dash-live__label">正在做什么</span>
+                <span class="dash-live__badge dash-live__badge--idle" id="dash-live-badge-secretary">待机</span>
+              </div>
+              <p class="dash-live__detail" id="dash-live-detail-secretary">等待编排：尚无本 Agent 的步骤记录。</p>
+              <p class="dash-live__meta"><span id="dash-live-time-secretary"></span></p>
+            </div>
+            <div class="dash-agent-card__history">
+              <div class="dash-history__title">历史记录</div>
+              <ul class="dash-history__list" id="dash-history-secretary" aria-label="项目秘书 Agent 运行历史"></ul>
+              <p class="dash-history__empty" id="dash-history-empty-secretary">尚无运行记录。</p>
+            </div>
+            <div class="dash-agent-card__footer">
+              <span class="dash-chip">输入 · 任务 / 里程碑 / 项目画像</span>
+              <span class="dash-chip">输出 · 缺口清单 · 待追问线索</span>
+            </div>
+          </article>
+
+          <article class="dash-agent-card dash-agent-card--risk">
+            <div class="dash-agent-card__top">
+              <div class="dash-agent-card__icon" aria-hidden="true">险</div>
+              <div>
+                <h3 class="dash-agent-card__name">风险识别 Agent</h3>
+                <span class="dash-agent-card__tag">风险研判</span>
+              </div>
+            </div>
+            <p class="dash-agent-card__lead">在多表证据足够时归纳风险类型与等级，给出可执行建议；证据不足时明确标注需补充的信息。</p>
+            <div class="dash-agent-card__live" aria-live="polite">
+              <div class="dash-live__row">
+                <span class="dash-live__label">正在做什么</span>
+                <span class="dash-live__badge dash-live__badge--idle" id="dash-live-badge-risk">待机</span>
+              </div>
+              <p class="dash-live__detail" id="dash-live-detail-risk">等待编排：尚无本 Agent 的步骤记录。</p>
+              <p class="dash-live__meta"><span id="dash-live-time-risk"></span></p>
+            </div>
+            <div class="dash-agent-card__history">
+              <div class="dash-history__title">历史记录</div>
+              <ul class="dash-history__list" id="dash-history-risk" aria-label="风险识别 Agent 运行历史"></ul>
+              <p class="dash-history__empty" id="dash-history-empty-risk">尚无运行记录。</p>
+            </div>
+            <div class="dash-agent-card__footer">
+              <span class="dash-chip">输入 · 任务 · 里程碑 · 纪要 / 风险表</span>
+              <span class="dash-chip">输出 · 风险候选 · 等级 · 建议动作</span>
+            </div>
+          </article>
+
+          <article class="dash-agent-card dash-agent-card--followup">
+            <div class="dash-agent-card__top">
+              <div class="dash-agent-card__icon" aria-hidden="true">督</div>
+              <div>
+                <h3 class="dash-agent-card__name">追问督办 Agent</h3>
+                <span class="dash-agent-card__tag">闭环补全</span>
+              </div>
+            </div>
+            <p class="dash-agent-card__lead">把秘书与风险链路中「人对人」需要确认的信息，变成可发送的追问，并推动关键字段回写到 Base。</p>
+            <div class="dash-agent-card__live" aria-live="polite">
+              <div class="dash-live__row">
+                <span class="dash-live__label">正在做什么</span>
+                <span class="dash-live__badge dash-live__badge--idle" id="dash-live-badge-followup">待机</span>
+              </div>
+              <p class="dash-live__detail" id="dash-live-detail-followup">等待编排：尚无本 Agent 的步骤记录。</p>
+              <p class="dash-live__meta"><span id="dash-live-time-followup"></span></p>
+            </div>
+            <div class="dash-agent-card__history">
+              <div class="dash-history__title">历史记录</div>
+              <ul class="dash-history__list" id="dash-history-followup" aria-label="追问督办 Agent 运行历史"></ul>
+              <p class="dash-history__empty" id="dash-history-empty-followup">尚无运行记录。</p>
+            </div>
+            <div class="dash-agent-card__footer">
+              <span class="dash-chip">输入 · 缺口清单 · 风险待确认项</span>
+              <span class="dash-chip">输出 · 追问内容 · FollowUps · 回写建议</span>
+            </div>
+          </article>
+
+          <article class="dash-agent-card dash-agent-card--weekly">
+            <div class="dash-agent-card__top">
+              <div class="dash-agent-card__icon" aria-hidden="true">报</div>
+              <div>
+                <h3 class="dash-agent-card__name">周报 Agent</h3>
+                <span class="dash-agent-card__tag">管理层视角</span>
+              </div>
+            </div>
+            <p class="dash-agent-card__lead">在不重判风险的前提下，把已有状态、风险与督办进展收束成一份给管理层的周报与管理结论。</p>
+            <div class="dash-agent-card__live" aria-live="polite">
+              <div class="dash-live__row">
+                <span class="dash-live__label">正在做什么</span>
+                <span class="dash-live__badge dash-live__badge--idle" id="dash-live-badge-weekly">待机</span>
+              </div>
+              <p class="dash-live__detail" id="dash-live-detail-weekly">等待编排：尚无本 Agent 的步骤记录。</p>
+              <p class="dash-live__meta"><span id="dash-live-time-weekly"></span></p>
+            </div>
+            <div class="dash-agent-card__history">
+              <div class="dash-history__title">历史记录</div>
+              <ul class="dash-history__list" id="dash-history-weekly" aria-label="周报 Agent 运行历史"></ul>
+              <p class="dash-history__empty" id="dash-history-empty-weekly">尚无运行记录。</p>
+            </div>
+            <div class="dash-agent-card__footer">
+              <span class="dash-chip">输入 · 项目画像 · 风险 · 追问闭环</span>
+              <span class="dash-chip">输出 · WeeklyReports 草案 · 结论</span>
+            </div>
+          </article>
         </div>
       </div>
     </div>
@@ -753,10 +1140,11 @@
     });
   });
 
-  const agents = [
-    { id: 1, name: 'Agent Alpha', active: true },
-    { id: 2, name: 'Agent Beta', active: false },
-    { id: 3, name: 'Agent Gamma', active: true },
+  const DEMO_ROLE_AGENTS = [
+    '项目秘书 Agent',
+    '风险识别 Agent',
+    '追问督办 Agent',
+    '周报 Agent',
   ];
 
   const agentLogEl = document.getElementById('agent-log');
@@ -764,50 +1152,116 @@
   const eventQueueLogEl = document.getElementById('event-queue-log');
   const eventPendingEl = document.getElementById('event-pending-count');
   const eventTotalEl = document.getElementById('event-total-count');
-  const agentListEl = document.getElementById('agent-list-ul');
-  const activeAgentsEl = document.getElementById('active-agents-ul');
-  const agentCountEl = document.getElementById('agent-count');
   const chatWindow = document.getElementById('chat-window');
   const chatInput = document.getElementById('chat-input');
 
-  function updateAgents() {
-    agentCountEl.textContent = String(agents.length);
-    agentListEl.innerHTML = '';
-    activeAgentsEl.innerHTML = '';
+  function pickDemoRoleAgent() {
+    return DEMO_ROLE_AGENTS[Math.floor(Math.random() * DEMO_ROLE_AGENTS.length)];
+  }
 
-    agents.forEach(a => {
-      const li = document.createElement('li');
-      li.className = 'agent-li';
-      li.innerHTML =
-        '<div class="agent-li-name"><span>' + escapeHtml(a.name) + '</span></div>' +
-        '<span class="badge ' + (a.active ? 'badge--on' : 'badge--off') + '">' +
-        (a.active ? '运行中' : '空闲') + '</span>';
-      agentListEl.appendChild(li);
+  const AGENT_NAME_TO_KEY = {
+    '项目秘书 Agent': 'secretary',
+    '风险识别 Agent': 'risk',
+    '追问督办 Agent': 'followup',
+    '周报 Agent': 'weekly',
+  };
 
-      if (a.active) {
-        const liActive = document.createElement('li');
-        liActive.className = 'agent-li';
-        liActive.innerHTML =
-          '<div class="agent-li-name"><span class="active-dot" aria-hidden="true"></span><span>' +
-          escapeHtml(a.name) + '</span></div>';
-        activeAgentsEl.appendChild(liActive);
+  const ACTIVITY_BY_KEY = {
+    secretary: [
+      '巡检 Tasks：扫描责任人、截止日期等关键字段缺失',
+      '对比 Milestones 与任务进度，标记「该更未更」项',
+      '聚合缺口并写入待追问线索（演示）',
+    ],
+    risk: [
+      '分析延期链路与依赖未闭合，生成风险候选',
+      '读取资源负载信号，识别分工过载区间',
+      '从纪要/描述中匹配变更类关键词并提示核实',
+    ],
+    followup: [
+      '根据缺口与风险待确认项起草追问话术',
+      '整理责任人列表与跟进优先级（演示）',
+      '生成回写字段建议，等待质量门禁后写入 Base',
+    ],
+    weekly: [
+      '汇总周内风险状态与追问闭环情况',
+      '拼装 WeeklyReports 段落与管理摘要结构',
+      '提炼管理结论与需拍板事项列表（演示）',
+    ],
+  };
+
+  const liveTimers = {};
+  const AGENT_HISTORY_MAX = 18;
+
+  function pushAgentHistory(key, text) {
+    var ul = document.getElementById('dash-history-' + key);
+    var emptyEl = document.getElementById('dash-history-empty-' + key);
+    if (!ul) return;
+    if (emptyEl) emptyEl.hidden = true;
+    var li = document.createElement('li');
+    li.className = 'dash-history__item';
+    var t = document.createElement('time');
+    var now = new Date();
+    t.dateTime = now.toISOString();
+    t.textContent = now.toLocaleString();
+    var span = document.createElement('span');
+    span.className = 'dash-history__text';
+    span.textContent = text;
+    li.appendChild(t);
+    li.appendChild(span);
+    ul.insertBefore(li, ul.firstChild);
+    while (ul.children.length > AGENT_HISTORY_MAX) {
+      ul.removeChild(ul.lastChild);
+    }
+  }
+
+  function initLiveBoard() {
+    ['secretary', 'risk', 'followup', 'weekly'].forEach(function (k) {
+      var badge = document.getElementById('dash-live-badge-' + k);
+      var detail = document.getElementById('dash-live-detail-' + k);
+      var timeEl = document.getElementById('dash-live-time-' + k);
+      var ul = document.getElementById('dash-history-' + k);
+      var emptyEl = document.getElementById('dash-history-empty-' + k);
+      if (badge) {
+        badge.className = 'dash-live__badge dash-live__badge--idle';
+        badge.textContent = '待机';
       }
+      if (detail) detail.textContent = '等待编排：尚无本 Agent 的步骤记录。';
+      if (timeEl) timeEl.textContent = '';
+      if (ul) ul.innerHTML = '';
+      if (emptyEl) emptyEl.hidden = false;
     });
-
-    if (!agents.length) {
-      agentListEl.innerHTML = '<li class="empty-hint">暂无 Agent</li>';
-    }
-    const activeN = agents.filter(a => a.active).length;
-    if (!activeN) {
-      activeAgentsEl.innerHTML = '<li class="empty-hint">当前没有活跃 Agent</li>';
-    }
   }
 
-  function escapeHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+  function setLiveIdle(key, lastSummary) {
+    var badge = document.getElementById('dash-live-badge-' + key);
+    var detail = document.getElementById('dash-live-detail-' + key);
+    var timeEl = document.getElementById('dash-live-time-' + key);
+    if (!badge || !detail || !timeEl) return;
+    badge.className = 'dash-live__badge dash-live__badge--idle';
+    badge.textContent = '待机';
+    detail.textContent = lastSummary
+      ? lastSummary
+      : '等待下一次编排触发（演示）。';
+    timeEl.textContent = lastSummary ? '更新于 ' + new Date().toLocaleTimeString() : '';
   }
+
+  function pulseRunning(key, message) {
+    var badge = document.getElementById('dash-live-badge-' + key);
+    var detail = document.getElementById('dash-live-detail-' + key);
+    var timeEl = document.getElementById('dash-live-time-' + key);
+    if (!badge || !detail || !timeEl) return;
+    pushAgentHistory(key, message);
+    badge.className = 'dash-live__badge dash-live__badge--busy';
+    badge.textContent = '执行中';
+    detail.textContent = message;
+    timeEl.textContent = '开始于 ' + new Date().toLocaleTimeString();
+    if (liveTimers[key]) clearTimeout(liveTimers[key]);
+    liveTimers[key] = setTimeout(function () {
+      setLiveIdle(key, '最近完成：' + message);
+    }, 2600);
+  }
+
+  initLiveBoard();
 
   function appendLogLine(container, timeStr, text, className) {
     const row = document.createElement('div');
@@ -860,7 +1314,7 @@
     totalEnqueued += 1;
     const id = 'E-' + String(eventSeq).padStart(4, '0');
     const summary = agentName + ' 加入事件队列';
-    pendingEvents.push({ id: id, summary: summary });
+    pendingEvents.push({ id: id, summary: summary, sourceAgent: agentName });
     appendQueueLog(
       'enqueue',
       '入队',
@@ -872,6 +1326,10 @@
   function tryProcessNextEvent() {
     if (!pendingEvents.length) return;
     const ev = pendingEvents.shift();
+    const rk = ev.sourceAgent ? AGENT_NAME_TO_KEY[ev.sourceAgent] : null;
+    if (rk) {
+      pulseRunning(rk, '消费事件 ' + ev.id + '：协调器已出队并完成回调（演示）');
+    }
     appendQueueLog(
       'processed',
       '已处理',
@@ -906,18 +1364,22 @@
     chatInput.value = '';
     const reply = '收到「' + raw + '」（演示回复）';
     setTimeout(() => {
+      pulseRunning('secretary', '处理会话：生成回复草案并写入审计日志（演示）');
       chatBubble('agent', reply);
       logAgent('Agent 回复了消息: ' + raw);
     }, 450);
   });
 
   function simulateActivity() {
-    const randomAgent = agents[Math.floor(Math.random() * agents.length)];
-    logTool(randomAgent.name + ' 使用了工具 X');
-    enqueueEventFromAgent(randomAgent.name);
+    const agentLabel = pickDemoRoleAgent();
+    const key = AGENT_NAME_TO_KEY[agentLabel];
+    const pool = ACTIVITY_BY_KEY[key];
+    const msg = pool[Math.floor(Math.random() * pool.length)];
+    pulseRunning(key, msg);
+    logTool(agentLabel + ' · ' + msg);
+    enqueueEventFromAgent(agentLabel);
   }
 
-  updateAgents();
   setInterval(simulateActivity, 3000);
   setInterval(function () {
     if (Math.random() < 0.62) tryProcessNextEvent();
