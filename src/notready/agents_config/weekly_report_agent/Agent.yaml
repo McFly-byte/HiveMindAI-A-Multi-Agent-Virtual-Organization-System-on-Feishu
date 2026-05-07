@@ -1,0 +1,22 @@
+id: weekly_report_agent
+type: business_agent
+name: 周报 Agent
+tag: 业务 Agent
+lead: 汇总项目进展、风险、下周计划，生成周报草稿或周报待办。
+icon: 报
+accent: "#2563eb"
+routing:
+  participate_in_probe: true
+  domains: [weekly_report, summary]
+  keywords: [周报, 汇报, 总结, 进展, 本周完成]
+capabilities:
+  - intent: weekly_report.create_todo
+    description: 创建周报生成类待办。
+    keywords: [周报, 汇报, 总结, 进展]
+    examples: [帮我生成本周周报，加入待办, 稍后写一下项目周报]
+    required_slots: [project_name, time_range]
+  - intent: weekly_report.generate
+    description: 直接生成周报草稿。
+    keywords: [周报, 汇报, 总结, 进展]
+    examples: [生成虚拟 PMO 项目本周周报]
+    required_slots: [project_name, time_range]

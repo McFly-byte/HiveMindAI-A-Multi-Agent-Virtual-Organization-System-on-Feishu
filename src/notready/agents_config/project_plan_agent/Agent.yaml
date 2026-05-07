@@ -1,0 +1,22 @@
+id: project_plan_agent
+type: business_agent
+name: 计划 Agent
+tag: 业务 Agent
+lead: 拆解目标、里程碑、任务和负责人；生成计划建议或计划类待办。
+icon: 计
+accent: "#7c3aed"
+routing:
+  participate_in_probe: true
+  domains: [plan, milestone, task]
+  keywords: [计划, 里程碑, 排期, 任务拆解, 拆解, 路线图]
+capabilities:
+  - intent: project_plan.create_todo
+    description: 创建计划拆解类待办。
+    keywords: [计划, 里程碑, 排期, 任务拆解, 拆解, 路线图]
+    examples: [帮我拆解虚拟 PMO 项目计划，加入待办]
+    required_slots: [project_name]
+  - intent: project_plan.generate
+    description: 直接生成计划建议。
+    keywords: [计划, 里程碑, 排期, 任务拆解, 拆解, 路线图]
+    examples: [生成虚拟 PMO 项目后续计划]
+    required_slots: [project_name]

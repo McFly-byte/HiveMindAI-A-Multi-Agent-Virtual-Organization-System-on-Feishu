@@ -1,0 +1,22 @@
+id: feishu_ops_agent
+type: business_agent
+name: 飞书操作 Agent
+tag: 工具 Agent
+lead: 将用户的飞书通知、多维表格写入等意图转换为 ToolExecutor 请求。
+icon: 飞
+accent: "#16a34a"
+routing:
+  participate_in_probe: true
+  domains: [feishu, tool, notification]
+  keywords: [飞书, 发送, 发给, 通知, 私聊, 转达, 多维表格, 表格, 记录]
+capabilities:
+  - intent: feishu.im.send_message
+    description: 查用户、创建/获取私聊会话并发送飞书消息。
+    keywords: [飞书, 发送, 发给, 通知, 私聊, 转达]
+    examples: [发给张三：今天完成风险整理, 通知李四项目风险已更新]
+    required_slots: [recipient_query, text]
+  - intent: feishu.bitable.create_record
+    description: 写入飞书多维表格。
+    keywords: [多维表格, 表格, 记录, 写入]
+    examples: [把这个风险记录到多维表格]
+    required_slots: [table, fields]

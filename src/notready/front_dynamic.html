@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>事件驱动 Agent Runtime</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-gradient-start: #e8eef9;
+    --bg-gradient-end: #f4f0f8;
+    --surface: #ffffff;
+    --surface-elevated: rgba(255, 255, 255, 0.92);
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.12);
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: rgba(37, 99, 235, 0.1);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.12);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 24px rgba(15, 23, 42, 0.08);
+    --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "Consolas", "Cascadia Code", ui-monospace, monospace;
+    --header-h: 64px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font);
+    margin: 0;
+    color: var(--text);
+    min-height: 100vh;
+    background: linear-gradient(155deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 48%, #eef2ff 100%);
+    background-attachment: fixed;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface-elevated);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .app-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.875rem 1.5rem;
+    min-height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-text h1 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text);
+  }
+
+  .brand-text p {
+    margin: 0.15rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--success);
+    background: var(--success-soft);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+  }
+
+  .status-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status-pill::before { animation: none; }
+  }
+
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem 2.5rem;
+  }
+
+  .tabs-wrap {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.5rem 0.5rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 1 1 auto;
+    min-width: max-content;
+    padding: 0.75rem 1.125rem;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    transition: color 0.2s, background 0.2s;
+    position: relative;
+  }
+
+  .tab:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .tab.active {
+    color: var(--primary);
+    background: linear-gradient(180deg, var(--primary-soft) 0%, transparent 100%);
+    box-shadow: inset 0 -2px 0 var(--primary);
+  }
+
+  .tab-content {
+    padding: 1.5rem;
+    display: none;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-content { animation: none; }
+  }
+
+  /* Agents tab: 职责 Dashboard */
+  .dash-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  .dash-hero {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (min-width: 880px) {
+    .dash-hero {
+      grid-template-columns: 1.05fr 1fr;
+      align-items: center;
+    }
+  }
+
+  .dash-kicker {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin: 0 0 0.4rem;
+  }
+
+  .dash-hero-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1.25;
+  }
+
+  .dash-hero-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    max-width: 38rem;
+  }
+
+  .dash-hero-footnote {
+    margin: 0.85rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    line-height: 1.5;
+  }
+
+  .dash-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.35rem;
+    padding: 0.9rem 1rem;
+    background: rgba(37, 99, 235, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(37, 99, 235, 0.14);
+  }
+
+  .dash-flow__step {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .dash-flow__arrow {
+    color: var(--text-subtle);
+    font-size: 0.8125rem;
+    user-select: none;
+    padding: 0 0.1rem;
+  }
+
+  .dash-agent-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 720px) {
+    .dash-agent-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .dash-agent-card {
+    --accent: var(--primary);
+    position: relative;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 1.35rem 1.4rem 1.2rem;
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-agent-card {
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+  }
+
+  .dash-agent-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  }
+
+  .dash-agent-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-agent-card:hover {
+      transform: none;
+    }
+  }
+
+  .dash-agent-card--secretary {
+    --accent: #2563eb;
+  }
+
+  .dash-agent-card--risk {
+    --accent: #ea580c;
+  }
+
+  .dash-agent-card--followup {
+    --accent: #7c3aed;
+  }
+
+  .dash-agent-card--weekly {
+    --accent: #0d9488;
+  }
+
+  .dash-agent-card__top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .dash-agent-card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 0.9375rem;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--accent);
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.12);
+  }
+
+  .dash-agent-card__name {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .dash-agent-card__tag {
+    display: inline-block;
+    margin-top: 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 0.22rem 0.5rem;
+    border-radius: 6px;
+  }
+
+  .dash-agent-card__lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .dash-agent-card__live {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid var(--border);
+  }
+
+  .dash-live__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .dash-live__label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .dash-live__badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .dash-live__badge--idle {
+    background: #e2e8f0;
+    color: #475569;
+  }
+
+  .dash-live__badge--busy {
+    color: var(--primary);
+    background: rgba(37, 99, 235, 0.14);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+    animation: liveBusy 1.25s ease-in-out infinite;
+  }
+
+  @keyframes liveBusy {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-live__badge--busy {
+      animation: none;
+    }
+  }
+
+  .dash-agent-card--risk .dash-live__badge--busy {
+    color: #c2410c;
+    background: rgba(234, 88, 12, 0.14);
+    box-shadow: 0 0 0 1px rgba(234, 88, 12, 0.22);
+  }
+
+  .dash-agent-card--followup .dash-live__badge--busy {
+    color: #6d28d9;
+    background: rgba(124, 58, 237, 0.14);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.22);
+  }
+
+  .dash-agent-card--weekly .dash-live__badge--busy {
+    color: #0f766e;
+    background: rgba(13, 148, 136, 0.14);
+    box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.22);
+  }
+
+  .dash-live__detail {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .dash-live__meta {
+    margin: 0.4rem 0 0;
+    font-size: 0.6875rem;
+    color: var(--text-subtle);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-agent-card__history {
+    margin: 0 0 0.35rem;
+  }
+
+  .dash-history__title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .dash-history__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 176px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .dash-history__item {
+    margin: 0;
+    padding: 0.5rem 0.55rem;
+    background: #f1f5f9;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent);
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .dash-history__item time {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--text-subtle);
+    margin-bottom: 0.28rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-history__text {
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .dash-history__empty {
+    margin: 0;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    text-align: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: #fafbfc;
+    line-height: 1.45;
+  }
+
+  .dash-history__empty[hidden] {
+    display: none;
+  }
+
+  .dash-agent-card__footer {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .dash-chip {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.28rem 0.55rem;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    line-height: 1.3;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.375rem;
+    margin-bottom: 0;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .card h2 {
+    margin: 0 0 1rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card h2 .icon-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.85;
+  }
+
+  /* Chat */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  #chat-window {
+    height: min(360px, 52vh);
+    overflow-y: auto;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .msg {
+    max-width: 88%;
+    padding: 0.65rem 0.9rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-break: break-word;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .msg--user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg--agent {
+    align-self: flex-start;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-meta {
+    display: block;
+    font-size: 0.6875rem;
+    opacity: 0.85;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .msg--user .msg-meta {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .msg--agent .msg-meta {
+    color: var(--text-muted);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.65rem;
+    align-items: stretch;
+  }
+
+  #chat-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    font-family: inherit;
+    font-size: 0.875rem;
+    background: var(--surface);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #chat-input::placeholder {
+    color: var(--text-subtle);
+  }
+
+  #chat-input:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+
+  #chat-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  .quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .quick-actions button {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 0.42rem 0.7rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+
+  .quick-actions button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .input-hint {
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    margin: 0;
+  }
+
+  .tab-hint {
+    margin: -0.35rem 0 0.85rem;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    line-height: 1.45;
+  }
+
+  /* Logs */
+  .log-window, .queue-log-window {
+    height: min(300px, 40vh);
+    overflow-y: auto;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.8125rem;
+    font-family: var(--mono);
+    line-height: 1.55;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .queue-log-window {
+    height: min(360px, 48vh);
+  }
+
+  .log-line, .event-line {
+    padding: 0.35rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+  }
+
+  .event-line--enqueue {
+    border-left-color: #f59e0b;
+  }
+
+  .event-line--processed {
+    border-left-color: #22c55e;
+  }
+
+  .event-line--system {
+    border-left-color: #64748b;
+  }
+
+  .log-line time, .event-line time {
+    color: #64748b;
+    margin-right: 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .event-line .ev-tag {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-right: 0.5rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  .event-line--enqueue .ev-tag {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.2);
+  }
+
+  .event-line--processed .ev-tag {
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.18);
+  }
+
+  .event-line--system .ev-tag {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.15);
+  }
+
+  .log-line + .log-line,
+  .event-line + .event-line {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .event-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 520px) {
+    .event-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .event-stat-card {
+    padding: 1rem 1.125rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+
+  .event-stat-card--pending {
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  }
+
+  .event-stat-card--total {
+    border-color: rgba(37, 99, 235, 0.25);
+    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .event-stat-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .event-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .event-stat-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+  }
+
+  .logs-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 900px) {
+    .logs-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Scrollbars */
+  .dash-history__list::-webkit-scrollbar,
+  .log-window::-webkit-scrollbar,
+  .queue-log-window::-webkit-scrollbar,
+  #chat-window::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .dash-history__list::-webkit-scrollbar-thumb,
+  .log-window::-webkit-scrollbar-thumb,
+  .queue-log-window::-webkit-scrollbar-thumb,
+  #chat-window::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 4px;
+  }
+
+  .log-window::-webkit-scrollbar-thumb,
+  .queue-log-window::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+  }
+
+
+  #dash-agent-empty {
+    margin: 0;
+  }
+
+
+  .todo-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .todo-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    padding: 0.875rem 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .todo-item__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .todo-item__title {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .todo-status {
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .todo-status--pending { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+  .todo-status--running { background: rgba(37, 99, 235, 0.14); color: #1d4ed8; }
+  .todo-status--done { background: rgba(22, 163, 74, 0.14); color: #15803d; }
+  .todo-status--failed { background: rgba(220, 38, 38, 0.14); color: #b91c1c; }
+  .todo-status--cancelled { background: rgba(100, 116, 139, 0.14); color: #475569; }
+
+  .todo-item__meta {
+    margin-top: 0.45rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-family: var(--mono);
+  }
+
+  .todo-empty {
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.08rem 0.28rem;
+  }
+
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">FD</div>
+      <div class="brand-text">
+        <h1>事件驱动 Agent Runtime</h1>
+        <p>FrontDeskAgent · BusinessAgent · TodoService · ToolExecutor</p>
+      </div>
+    </div>
+    <div class="status-pill" role="status" aria-live="polite">运行环境已连接</div>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="tabs-wrap">
+    <div class="tabs" role="tablist" aria-label="主功能分区">
+      <button type="button" class="tab active" role="tab" aria-selected="true" aria-controls="agents" id="tab-agents" data-tab="agents">职责看板</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="chat" id="tab-chat" data-tab="chat">Agent 聊天</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="todos" id="tab-todos" data-tab="todos">待办</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="logs" id="tab-logs" data-tab="logs">日志</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="events" id="tab-events" data-tab="events">事件队列</button>
+    </div>
+
+    <div class="tab-content active" id="agents" role="tabpanel" aria-labelledby="tab-agents">
+      <div class="dash-layout">
+        <section class="dash-hero" aria-labelledby="dash-hero-heading">
+          <div>
+            <p class="dash-kicker">虚拟项目办公室 · Runtime</p>
+            <h2 class="dash-hero-title" id="dash-hero-heading">业务 Agent 在做什么？</h2>
+            <p class="dash-hero-desc">
+              当前页面直接连接 Flask 内部 AppRuntime：FrontDeskAgent 负责会话、路由、追问和回复；业务 Agent 只返回结构化结果；TodoService 承接待办；ToolExecutor 隔离真实飞书应用工具。
+            </p>
+            <p class="dash-hero-footnote">运行数据当前保存在内存中；Feishu 工具只走真实应用身份 OpenAPI。</p>
+          </div>
+          <div class="dash-flow" role="list" aria-label="协作顺序">
+            <span class="dash-flow__step" role="listitem">① 用户消息</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">② capability probe</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">③ business request</span>
+            <span class="dash-flow__arrow" aria-hidden="true">→</span>
+            <span class="dash-flow__step" role="listitem">④ TODO / 回复</span>
+          </div>
+        </section>
+
+        <div class="dash-agent-grid" id="dash-agent-grid" aria-live="polite"></div>
+        <p class="dash-history__empty" id="dash-agent-empty">等待 AppRuntime 同步 Agent 列表。</p>
+      </div>
+    </div>
+
+    <div class="tab-content" id="chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> FrontDeskAgent 聊天入口</h2>
+        <div class="chat-area">
+          <div id="chat-window" aria-live="polite" aria-relevant="additions"></div>
+          <div class="input-row">
+            <input type="text" id="chat-input" placeholder="输入消息，按 Enter 发送…" autocomplete="off" aria-label="聊天输入">
+          </div>
+          <p class="input-hint">聊天会直接进入 AppRuntime：ChannelAdapter → FrontDeskAgent → LLM → BusinessAgent / TodoService / ToolExecutor → 回复。</p>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="tab-content" id="todos" role="tabpanel" aria-labelledby="tab-todos" hidden>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> TodoService 待办</h2>
+        <p class="tab-hint">业务 Agent 只返回 todo_proposal；FrontDeskAgent 请求 TodoService 创建待办。</p>
+        <div class="todo-list" id="todo-list" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+      <div class="logs-grid">
+        <div class="card">
+          <h2><span class="icon-dot" aria-hidden="true"></span> Agent 日志</h2>
+          <div class="log-window" id="agent-log" role="log" aria-label="Agent 日志"></div>
+        </div>
+        <div class="card">
+          <h2><span class="icon-dot" aria-hidden="true"></span> 工具操作日志</h2>
+          <div class="log-window" id="tool-log" role="log" aria-label="工具日志"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="events" role="tabpanel" aria-labelledby="tab-events" hidden>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> 事件队列</h2>
+        <div
+          class="event-stats"
+          id="event-queue-stats"
+          role="group"
+          aria-label="队列统计"
+          aria-live="polite"
+        >
+          <div class="event-stat-card event-stat-card--pending">
+            <span class="event-stat-label">未处理</span>
+            <span class="event-stat-value" id="event-pending-count">0</span>
+            <p class="event-stat-hint">当前仍在队列中、等待消费的事件</p>
+          </div>
+          <div class="event-stat-card event-stat-card--total">
+            <span class="event-stat-label">事件总数</span>
+            <span class="event-stat-value" id="event-total-count">0</span>
+            <p class="event-stat-hint">自本会话以来累计入队次数</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="icon-dot" aria-hidden="true"></span> 队列日志</h2>
+        <p class="tab-hint">记录入队、出队与处理结果，便于对照统计数字排查积压。</p>
+        <div class="queue-log-window" id="event-queue-log" role="log" aria-label="事件队列日志"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.tab;
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      contents.forEach(c => {
+        const on = c.id === id;
+        c.classList.toggle('active', on);
+        c.hidden = !on;
+      });
+    });
+  });
+
+  const agentGridEl = document.getElementById('dash-agent-grid');
+  const agentEmptyEl = document.getElementById('dash-agent-empty');
+  const agentLogEl = document.getElementById('agent-log');
+  const toolLogEl = document.getElementById('tool-log');
+  const eventQueueLogEl = document.getElementById('event-queue-log');
+  const eventPendingEl = document.getElementById('event-pending-count');
+  const eventTotalEl = document.getElementById('event-total-count');
+  const todoListEl = document.getElementById('todo-list');
+  const chatWindow = document.getElementById('chat-window');
+  const chatInput = document.getElementById('chat-input');
+  
+  const AGENT_HISTORY_MAX = 18;
+  const PALETTE = ['#2563eb', '#ea580c', '#7c3aed', '#0d9488', '#dc2626', '#0891b2', '#9333ea', '#4f46e5', '#16a34a', '#ca8a04'];
+  const agentsByKey = new Map();
+  const cardByKey = new Map();
+  const liveTimers = new Map();
+
+  function escapeText(v) {
+    return v == null ? '' : String(v);
+  }
+
+  function hashString(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  function pickAccent(key) {
+    return PALETTE[hashString(key) % PALETTE.length];
+  }
+
+  function firstGlyph(name, defaultGlyph) {
+    const clean = escapeText(name || defaultGlyph || 'A').trim();
+    if (!clean) return 'A';
+    const chars = Array.from(clean.replace(/\s+/g, ''));
+    return chars[0] || 'A';
+  }
+
+  function normalizeAgent(agent, defaultKey) {
+    agent = agent || {};
+    const key = escapeText(agent.key || defaultKey).trim();
+    if (!key) return null;
+    const name = escapeText(agent.name || agent.agent_name || key).trim() || key;
+    const chips = Array.isArray(agent.chips) ? agent.chips.map(escapeText).filter(Boolean) : [];
+    return {
+      key,
+      name,
+      tag: escapeText(agent.tag || '业务 Agent'),
+      lead: escapeText(agent.lead || agent.description || '等待后端同步 Agent 描述。'),
+      icon: escapeText(agent.icon || firstGlyph(name, key)),
+      accent: escapeText(agent.accent || pickAccent(key)),
+      chips: chips.length ? chips : ['key · ' + key],
+    };
+  }
+
+  function makeEl(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text != null) el.textContent = text;
+    return el;
+  }
+
+  function getAgentState(key) {
+    let st = agentsByKey.get(key);
+    if (!st) {
+      const meta = normalizeAgent({ key, name: key }, key);
+      st = {
+        meta,
+        status: 'idle',
+        detail: '等待编排：尚无本 Agent 的步骤记录。',
+        timeText: '',
+        history: [],
+      };
+      agentsByKey.set(key, st);
+    }
+    return st;
+  }
+
+  function setAgentsFromList(agents) {
+    if (!Array.isArray(agents)) return;
+    const next = new Map();
+    agents.forEach(raw => {
+      const meta = normalizeAgent(raw || {});
+      if (!meta) return;
+      const old = agentsByKey.get(meta.key);
+      next.set(meta.key, old ? { ...old, meta } : {
+        meta,
+        status: 'idle',
+        detail: '等待编排：尚无本 Agent 的步骤记录。',
+        timeText: '',
+        history: [],
+      });
+    });
+    agentsByKey.clear();
+    next.forEach((v, k) => agentsByKey.set(k, v));
+    renderAgentGrid();
+  }
+
+  function ensureAgentFromAction(payload) {
+    const key = escapeText(payload.agent_key || payload.key).trim();
+    if (!key) return null;
+    const st = getAgentState(key);
+    const maybeMeta = normalizeAgent({
+      key,
+      name: payload.agent_name || payload.name || st.meta.name,
+      tag: payload.tag || st.meta.tag,
+      lead: payload.lead || st.meta.lead,
+      icon: payload.icon || st.meta.icon,
+      accent: payload.accent || st.meta.accent,
+      chips: payload.chips || st.meta.chips,
+    }, key);
+    st.meta = maybeMeta;
+    if (!cardByKey.has(key)) renderAgentGrid();
+    else updateAgentCardMeta(key);
+    return key;
+  }
+
+  function createAgentCard(st) {
+    const meta = st.meta;
+    const card = makeEl('article', 'dash-agent-card');
+    card.dataset.agentKey = meta.key;
+    card.style.setProperty('--accent', meta.accent);
+
+    const top = makeEl('div', 'dash-agent-card__top');
+    const icon = makeEl('div', 'dash-agent-card__icon', meta.icon);
+    icon.setAttribute('aria-hidden', 'true');
+    const titleWrap = document.createElement('div');
+    const name = makeEl('h3', 'dash-agent-card__name', meta.name);
+    name.dataset.slot = 'name';
+    const tag = makeEl('span', 'dash-agent-card__tag', meta.tag);
+    tag.dataset.slot = 'tag';
+    titleWrap.appendChild(name);
+    titleWrap.appendChild(tag);
+    top.appendChild(icon);
+    top.appendChild(titleWrap);
+
+    const lead = makeEl('p', 'dash-agent-card__lead', meta.lead);
+    lead.dataset.slot = 'lead';
+
+    const live = makeEl('div', 'dash-agent-card__live');
+    live.setAttribute('aria-live', 'polite');
+    const liveRow = makeEl('div', 'dash-live__row');
+    liveRow.appendChild(makeEl('span', 'dash-live__label', '正在做什么'));
+    const badge = makeEl('span', 'dash-live__badge dash-live__badge--idle', '待机');
+    badge.dataset.slot = 'badge';
+    liveRow.appendChild(badge);
+    const detail = makeEl('p', 'dash-live__detail', st.detail);
+    detail.dataset.slot = 'detail';
+    const metaLine = makeEl('p', 'dash-live__meta');
+    const timeSpan = makeEl('span', '', st.timeText);
+    timeSpan.dataset.slot = 'time';
+    metaLine.appendChild(timeSpan);
+    live.appendChild(liveRow);
+    live.appendChild(detail);
+    live.appendChild(metaLine);
+
+    const historyWrap = makeEl('div', 'dash-agent-card__history');
+    historyWrap.appendChild(makeEl('div', 'dash-history__title', '历史记录'));
+    const ul = makeEl('ul', 'dash-history__list');
+    ul.dataset.slot = 'history';
+    ul.setAttribute('aria-label', meta.name + ' 运行历史');
+    const empty = makeEl('p', 'dash-history__empty', '尚无运行记录。');
+    empty.dataset.slot = 'historyEmpty';
+    historyWrap.appendChild(ul);
+    historyWrap.appendChild(empty);
+
+    const footer = makeEl('div', 'dash-agent-card__footer');
+    footer.dataset.slot = 'footer';
+
+    card.appendChild(top);
+    card.appendChild(lead);
+    card.appendChild(live);
+    card.appendChild(historyWrap);
+    card.appendChild(footer);
+    return card;
+  }
+
+  function renderAgentGrid() {
+    agentGridEl.innerHTML = '';
+    cardByKey.clear();
+    const states = Array.from(agentsByKey.values());
+    if (agentEmptyEl) agentEmptyEl.hidden = states.length > 0;
+    states.forEach(st => {
+      const card = createAgentCard(st);
+      agentGridEl.appendChild(card);
+      cardByKey.set(st.meta.key, card);
+      updateAgentCardMeta(st.meta.key);
+      updateLiveUI(st.meta.key);
+      renderHistory(st.meta.key);
+    });
+  }
+
+  function updateAgentCardMeta(key) {
+    const st = agentsByKey.get(key);
+    const card = cardByKey.get(key);
+    if (!st || !card) return;
+    card.style.setProperty('--accent', st.meta.accent);
+    const icon = card.querySelector('.dash-agent-card__icon');
+    const name = card.querySelector('[data-slot="name"]');
+    const tag = card.querySelector('[data-slot="tag"]');
+    const lead = card.querySelector('[data-slot="lead"]');
+    const footer = card.querySelector('[data-slot="footer"]');
+    if (icon) icon.textContent = st.meta.icon;
+    if (name) name.textContent = st.meta.name;
+    if (tag) tag.textContent = st.meta.tag;
+    if (lead) lead.textContent = st.meta.lead;
+    if (footer) {
+      footer.innerHTML = '';
+      st.meta.chips.forEach(chip => footer.appendChild(makeEl('span', 'dash-chip', chip)));
+    }
+  }
+
+  function renderHistory(key) {
+    const st = agentsByKey.get(key);
+    const card = cardByKey.get(key);
+    if (!st || !card) return;
+    const ul = card.querySelector('[data-slot="history"]');
+    const empty = card.querySelector('[data-slot="historyEmpty"]');
+    if (!ul) return;
+    ul.innerHTML = '';
+    st.history.slice(0, AGENT_HISTORY_MAX).forEach(item => {
+      const li = makeEl('li', 'dash-history__item');
+      const t = makeEl('time', '', item.timeText || new Date().toLocaleString());
+      t.dateTime = item.iso || new Date().toISOString();
+      const span = makeEl('span', 'dash-history__text', item.text);
+      li.appendChild(t);
+      li.appendChild(span);
+      ul.appendChild(li);
+    });
+    if (empty) empty.hidden = st.history.length > 0;
+  }
+
+  function pushAgentHistory(key, text, timeText) {
+    const st = getAgentState(key);
+    st.history.unshift({ text, timeText: timeText || new Date().toLocaleString(), iso: new Date().toISOString() });
+    if (st.history.length > AGENT_HISTORY_MAX) st.history.length = AGENT_HISTORY_MAX;
+    if (!cardByKey.has(key)) renderAgentGrid();
+    else renderHistory(key);
+  }
+
+  function updateLiveUI(key) {
+    const st = agentsByKey.get(key);
+    const card = cardByKey.get(key);
+    if (!st || !card) return;
+    const badge = card.querySelector('[data-slot="badge"]');
+    const detail = card.querySelector('[data-slot="detail"]');
+    const timeEl = card.querySelector('[data-slot="time"]');
+    if (badge) {
+      const busy = st.status === 'running' || st.status === 'busy';
+      badge.className = 'dash-live__badge ' + (busy ? 'dash-live__badge--busy' : 'dash-live__badge--idle');
+      badge.textContent = busy ? '执行中' : '待机';
+    }
+    if (detail) detail.textContent = st.detail || '等待下一次编排触发。';
+    if (timeEl) timeEl.textContent = st.timeText || '';
+  }
+
+  function setLiveIdle(key, lastSummary) {
+    const st = getAgentState(key);
+    st.status = 'idle';
+    st.detail = lastSummary || '等待下一次编排触发。';
+    st.timeText = lastSummary ? '更新于 ' + new Date().toLocaleTimeString() : '';
+    updateLiveUI(key);
+  }
+
+  function pulseRunning(key, message, idleAfterMs, timeText) {
+    const st = getAgentState(key);
+    pushAgentHistory(key, message, timeText);
+    st.status = 'running';
+    st.detail = message;
+    st.timeText = '开始于 ' + new Date().toLocaleTimeString();
+    updateLiveUI(key);
+    if (liveTimers.has(key)) clearTimeout(liveTimers.get(key));
+    liveTimers.set(key, setTimeout(function () {
+      setLiveIdle(key, '最近完成：' + message);
+    }, idleAfterMs || 2600));
+  }
+
+  function appendLogLine(container, timeStr, text, className) {
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = className;
+    const t = document.createElement('time');
+    t.dateTime = new Date().toISOString();
+    t.textContent = '[' + (timeStr || new Date().toLocaleTimeString()) + ']';
+    row.appendChild(t);
+    row.appendChild(document.createTextNode(' ' + escapeText(text)));
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function appendQueueLog(level, tagText, bodyText, timeStr) {
+    if (!eventQueueLogEl) return;
+    const safeLevel = ['enqueue', 'processed', 'system'].includes(level) ? level : 'system';
+    const row = document.createElement('div');
+    row.className = 'event-line event-line--' + safeLevel;
+    const t = document.createElement('time');
+    t.dateTime = new Date().toISOString();
+    t.textContent = '[' + (timeStr || new Date().toLocaleTimeString()) + ']';
+    const tag = document.createElement('span');
+    tag.className = 'ev-tag';
+    tag.textContent = tagText || '系统';
+    row.appendChild(t);
+    row.appendChild(tag);
+    row.appendChild(document.createTextNode(escapeText(bodyText)));
+    eventQueueLogEl.appendChild(row);
+    eventQueueLogEl.scrollTop = eventQueueLogEl.scrollHeight;
+  }
+
+  function updateEventStats(pending, total) {
+    if (eventPendingEl) eventPendingEl.textContent = String(pending ?? 0);
+    if (eventTotalEl) eventTotalEl.textContent = String(total ?? 0);
+  }
+
+
+  function fmtTs(ts) {
+    if (!ts) return '-';
+    try { return new Date(Number(ts) * 1000).toLocaleString(); } catch (_) { return '-'; }
+  }
+
+  function renderTodos(todos) {
+    if (!todoListEl) return;
+    todoListEl.innerHTML = '';
+    if (!Array.isArray(todos) || todos.length === 0) {
+      const empty = makeEl('p', 'todo-empty', '当前没有待办。可以在聊天里输入：帮我整理本周项目风险，加入待办。');
+      todoListEl.appendChild(empty);
+      return;
+    }
+    todos.forEach((todo, index) => {
+      const item = makeEl('article', 'todo-item');
+      const top = makeEl('div', 'todo-item__top');
+      const title = todo.user_visible_summary || todo.title || todo.todo_id;
+      top.appendChild(makeEl('span', 'todo-item__title', (index + 1) + '. ' + title));
+      top.appendChild(makeEl('span', 'todo-status todo-status--' + (todo.status || 'pending'), todo.status || 'pending'));
+      item.appendChild(top);
+      item.appendChild(makeEl('div', 'todo-item__meta', 'todo_id=' + (todo.todo_id || '-') + ' · assigned_agent=' + (todo.assigned_agent || '-') + ' · action_type=' + (todo.action_type || '-')));
+      item.appendChild(makeEl('div', 'todo-item__meta', 'created_at=' + fmtTs(todo.created_at) + ' · updated_at=' + fmtTs(todo.updated_at)));
+      if (todo.task_context && todo.task_context.summary) {
+        item.appendChild(makeEl('div', 'todo-item__meta', 'context=' + todo.task_context.summary));
+      }
+      if (todo.result && todo.result.summary) {
+        item.appendChild(makeEl('div', 'todo-item__meta', 'result=' + todo.result.summary));
+      }
+      if (todo.error) {
+        item.appendChild(makeEl('div', 'todo-item__meta', 'error=' + todo.error));
+      }
+      todoListEl.appendChild(item);
+    });
+  }
+
+  function chatBubble(role, text, metaText) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--' + (role === 'user' ? 'user' : 'agent');
+    const meta = document.createElement('span');
+    meta.className = 'msg-meta';
+    meta.textContent = metaText || (role === 'user' ? '我' : 'Agent');
+    const body = document.createElement('span');
+    body.textContent = text || '';
+    wrap.appendChild(meta);
+    wrap.appendChild(body);
+    chatWindow.appendChild(wrap);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    return body;
+  }
+
+  function firstAgentKey() {
+    const first = agentsByKey.keys().next();
+    return first.done ? null : first.value;
+  }
+
+  function parseSsePacket(packet) {
+    let eventName = 'message';
+    const dataLines = [];
+    packet.split(/\r?\n/).forEach(line => {
+      if (line.startsWith('event:')) eventName = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+    });
+    const raw = dataLines.join('\n');
+    let data = raw;
+    try { data = JSON.parse(raw); } catch (_) {}
+    return { eventName, data };
+  }
+
+  async function sendChat(message) {
+    const bodyEl = chatBubble('agent', '', 'Agent');
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message, agent_key: firstAgentKey() }),
+      });
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok || !data || data.ok === false) {
+        bodyEl.textContent = '请求失败：' + escapeText((data && data.error) || ('HTTP ' + res.status));
+        return;
+      }
+      bodyEl.textContent = escapeText(data.reply || '');
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    } catch (err) {
+      bodyEl.textContent = '请求异常：' + err.message;
+    }
+  }
+
+  function submitChatMessage(raw) {
+    raw = escapeText(raw).trim();
+    if (!raw) return;
+    chatBubble('user', raw);
+    const key = firstAgentKey();
+    if (key) pulseRunning(key, '处理会话：等待后端回复', 1800);
+    sendChat(raw);
+  }
+
+  chatInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const raw = chatInput.value.trim();
+    if (!raw) return;
+    e.preventDefault();
+    chatInput.value = '';
+    submitChatMessage(raw);
+  });
+
+  function clearLogs() {
+    if (agentLogEl) agentLogEl.innerHTML = '';
+    if (toolLogEl) toolLogEl.innerHTML = '';
+    if (eventQueueLogEl) eventQueueLogEl.innerHTML = '';
+  }
+
+  function applySnapshot(data) {
+    clearLogs();
+    setAgentsFromList(data.agents || []);
+    updateEventStats(data.event_stats && data.event_stats.pending, data.event_stats && data.event_stats.total);
+    renderTodos(data.todos || []);
+    (data.agent_logs || []).forEach(x => appendLogLine(agentLogEl, x.time, x.message, 'log-line'));
+    (data.tool_logs || []).forEach(x => appendLogLine(toolLogEl, x.time, x.message, 'log-line'));
+    if ((data.event_logs || []).length) {
+      (data.event_logs || []).forEach(x => appendQueueLog(x.level, x.tag, x.message, x.time));
+    } else {
+      appendQueueLog('system', '系统', ' 队列就绪，等待事件入队…');
+    }
+  }
+
+  function handleServerEvent(name, envelopeOrPayload) {
+    const payload = envelopeOrPayload && envelopeOrPayload.payload ? envelopeOrPayload.payload : envelopeOrPayload;
+    if (name === 'snapshot') {
+      applySnapshot(payload || {});
+    } else if (name === 'agents_updated') {
+      setAgentsFromList(payload.agents || []);
+    } else if (name === 'agent_action') {
+      const key = ensureAgentFromAction(payload || {});
+      if (!key) return;
+      if (payload.status === 'idle') {
+        setLiveIdle(key, payload.message);
+      } else {
+        pulseRunning(key, payload.message, payload.idle_after_ms, payload.time);
+      }
+    } else if (name === 'agent_log') {
+      appendLogLine(agentLogEl, payload.time, payload.message, 'log-line');
+    } else if (name === 'tool_log') {
+      appendLogLine(toolLogEl, payload.time, payload.message, 'log-line');
+    } else if (name === 'event_log') {
+      appendQueueLog(payload.level, payload.tag, payload.message, payload.time);
+    } else if (name === 'event_stats') {
+      updateEventStats(payload.pending, payload.total);
+    } else if (name === 'todos_updated') {
+      renderTodos(payload.todos || []);
+    }
+  }
+
+  function connectUiStream() {
+    const es = new EventSource('/api/ui/stream');
+    ['snapshot', 'agents_updated', 'agent_action', 'agent_log', 'tool_log', 'event_log', 'event_stats', 'todos_updated', 'chat_link_updated'].forEach(function (name) {
+      es.addEventListener(name, function (e) {
+        try { handleServerEvent(name, JSON.parse(e.data)); }
+        catch (err) { console.error('Bad SSE payload', name, err, e.data); }
+      });
+    });
+    es.onerror = function () {
+      appendQueueLog('system', '系统', ' 前端实时连接断开，浏览器会自动重连。');
+    };
+  }
+
+  setAgentsFromList([]);
+  updateEventStats(0, 0);
+  renderTodos([]);
+  appendQueueLog('system', '系统', ' 队列就绪，等待事件入队…');
+  connectUiStream();
+})();
+</script>
+
+</body>
+</html>

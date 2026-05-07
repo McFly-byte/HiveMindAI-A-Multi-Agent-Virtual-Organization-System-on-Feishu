@@ -1,0 +1,22 @@
+id: risk_agent
+type: business_agent
+name: 风险 Agent
+tag: 业务 Agent
+lead: 识别延期、阻塞、依赖与项目风险；生成风险摘要或风险整理待办。
+icon: 险
+accent: "#dc2626"
+routing:
+  participate_in_probe: true
+  domains: [risk, blocker, delay]
+  keywords: [风险, 延期, 阻塞, 卡点, 问题, 依赖]
+capabilities:
+  - intent: risk.report.create_todo
+    description: 创建风险整理类待办。
+    keywords: [风险, 延期, 阻塞, 卡点, 依赖]
+    examples: [帮我整理本周项目风险，加入待办, 稍后整理一下延期风险]
+    required_slots: [project_name, time_range]
+  - intent: risk.report.generate
+    description: 直接生成风险摘要。
+    keywords: [风险, 延期, 阻塞, 卡点, 依赖]
+    examples: [生成虚拟 PMO 项目本周风险摘要]
+    required_slots: [project_name, time_range]

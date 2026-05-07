@@ -1,0 +1,457 @@
+tables:
+  Projects:
+    display_name: 项目表
+    table_id: tblZYp8t26HmYp3w
+    view_id: null
+    description: 存储项目整体状态、负责人、优先级、健康度、风险等级和最新周报链接。
+    primary_key_field: 项目名称
+    fields:
+    - field_name: 项目名称
+      field_type: text
+      required: true
+      write_allowed: false
+    - field_name: 项目负责人
+      field_type: user
+      required: true
+      write_allowed: false
+    - field_name: 项目状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 未开始
+      - 进行中
+      - 阻塞
+      - 已延期
+      - 已完成
+      write_allowed: true
+    - field_name: 项目优先级
+      field_type: single_select
+      required: true
+      enum_values:
+      - P0
+      - P1
+      - P2
+      write_allowed: false
+    - field_name: 开始日期
+      field_type: date
+      required: false
+      write_allowed: false
+    - field_name: 目标上线日期
+      field_type: date
+      required: false
+      write_allowed: false
+    - field_name: 当前健康度
+      field_type: single_select
+      required: true
+      enum_values:
+      - 健康
+      - 关注
+      - 风险
+      - 严重风险
+      write_allowed: true
+    - field_name: 当前风险等级
+      field_type: single_select
+      required: true
+      enum_values:
+      - 低
+      - 中
+      - 高
+      write_allowed: true
+    - field_name: 本周关键进展
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 最新周报链接
+      field_type: url
+      required: false
+      write_allowed: true
+  Tasks:
+    display_name: 任务表
+    table_id: tblCVuIKif9GQARi
+    view_id: null
+    description: 存储项目任务、负责人、状态、优先级、截止时间、依赖、阻塞说明、风险标记和 Agent 摘要。
+    primary_key_field: 任务名称
+    fields:
+    - field_name: 任务名称
+      field_type: text
+      required: true
+      write_allowed: false
+    - field_name: 所属项目
+      field_type: link
+      required: true
+      write_allowed: false
+    - field_name: 负责人
+      field_type: user
+      required: true
+      write_allowed: false
+    - field_name: 角色类型
+      field_type: single_select
+      required: true
+      enum_values:
+      - 产品
+      - 前端
+      - 后端
+      - 算法
+      - 测试
+      - 项目经理
+      write_allowed: false
+    - field_name: 所属里程碑
+      field_type: text
+      required: false
+      write_allowed: false
+    - field_name: 状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 未开始
+      - 进行中
+      - 阻塞
+      - 待验收
+      - 已完成
+      write_allowed: true
+    - field_name: 截止时间
+      field_type: date
+      required: true
+      write_allowed: false
+    - field_name: 最近更新时间
+      field_type: date
+      required: true
+      write_allowed: true
+    - field_name: 计划开始时间
+      field_type: date
+      required: false
+      write_allowed: false
+    - field_name: 预计工时
+      field_type: number
+      required: false
+      write_allowed: false
+    - field_name: 实际工时
+      field_type: number
+      required: false
+      write_allowed: false
+    - field_name: 依赖任务
+      field_type: text
+      required: false
+      write_allowed: false
+    - field_name: 阻塞说明
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 是否需要追问
+      field_type: checkbox
+      required: false
+      write_allowed: true
+    - field_name: 风险标记
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: Agent 处理摘要
+      field_type: text
+      required: false
+      write_allowed: true
+  Milestones:
+    display_name: 里程碑表
+    table_id: tblHcYJ3oL5sud4w
+    view_id: null
+    description: 存储里程碑计划日期、实际日期、状态、延期天数、依赖说明和风险标记。
+    primary_key_field: 里程碑名称
+    fields:
+    - field_name: 里程碑名称
+      field_type: text
+      required: true
+      write_allowed: false
+    - field_name: 所属项目
+      field_type: text
+      required: true
+      write_allowed: false
+    - field_name: 责任人
+      field_type: text
+      required: false
+      write_allowed: false
+    - field_name: 计划日期
+      field_type: date
+      required: false
+      write_allowed: false
+    - field_name: 实际日期
+      field_type: date
+      required: false
+      write_allowed: false
+    - field_name: 状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 未开始
+      - 进行中
+      - 已完成
+      - 已延期
+      write_allowed: true
+    - field_name: 延期天数
+      field_type: number
+      required: false
+      write_allowed: true
+    - field_name: 依赖说明
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 里程碑摘要
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 风险标记
+      field_type: text
+      required: false
+      write_allowed: true
+  Risks:
+    display_name: 风险问题表
+    table_id: tblT9HIAERlxnuvU
+    view_id: null
+    description: 存储风险标题、类型、等级、触发原因、责任人、建议动作、证据来源和状态。
+    primary_key_field: 风险标题
+    fields:
+    - field_name: 风险标题
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 所属项目
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 关联任务
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 风险类型
+      field_type: single_select
+      required: true
+      enum_values:
+      - 延期风险
+      - 依赖阻塞风险
+      - 资源冲突风险
+      - 需求变更风险
+      - 沟通失真风险
+      - 数据缺失风险
+      - 交付质量风险
+      write_allowed: true
+    - field_name: 风险等级
+      field_type: single_select
+      required: true
+      enum_values:
+      - 低
+      - 中
+      - 高
+      write_allowed: true
+    - field_name: 触发原因
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 当前状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 待确认
+      - 跟进中
+      - 已升级
+      - 已关闭
+      write_allowed: true
+    - field_name: 责任人
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 建议动作
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 是否升级
+      field_type: checkbox
+      required: false
+      write_allowed: true
+    - field_name: 升级对象
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 最近更新时间
+      field_type: date
+      required: false
+      write_allowed: true
+    - field_name: 由哪个 Agent 创建
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 证据来源
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 幂等键
+      field_type: text
+      required: true
+      write_allowed: true
+  FollowUps:
+    display_name: 追问记录表
+    table_id: tbl9cn9fyOyJYcxY
+    view_id: null
+    description: 存储追问对象、追问原因、追问内容、回复内容和回写状态。
+    primary_key_field: 追问标题
+    fields:
+    - field_name: 追问标题
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 所属项目
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 关联任务
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 关联风险
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 追问对象
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 追问角色
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 追问原因
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 追问内容
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 追问状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 待发送
+      - 待回复
+      - 已回复
+      - 已关闭
+      write_allowed: true
+    - field_name: 回复内容
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 追问时间
+      field_type: date
+      required: false
+      write_allowed: true
+    - field_name: 回复时间
+      field_type: date
+      required: false
+      write_allowed: true
+    - field_name: 是否已回写任务或风险表
+      field_type: checkbox
+      required: false
+      write_allowed: true
+    - field_name: 幂等键
+      field_type: text
+      required: true
+      write_allowed: true
+  WeeklyReports:
+    display_name: 周报表
+    table_id: tblNxKfdwjek7zB1
+    view_id: null
+    description: 存储周期、项目摘要、本周进展、风险摘要、阻塞项、下周计划、决策建议和文档链接。
+    primary_key_field: 周期
+    fields:
+    - field_name: 周期
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 所属项目
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 项目摘要
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 本周进展
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 风险摘要
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 阻塞项
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 下周计划
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 决策建议
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 待拍板事项
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 文档链接
+      field_type: url
+      required: false
+      write_allowed: true
+    - field_name: 发送状态
+      field_type: single_select
+      required: true
+      enum_values:
+      - 草稿
+      - 待发送
+      - 已发送
+      write_allowed: true
+    - field_name: 生成时间
+      field_type: date
+      required: false
+      write_allowed: true
+    - field_name: 由哪个 Agent 创建
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 幂等键
+      field_type: text
+      required: true
+      write_allowed: true
+  AgentRuns:
+    display_name: Agent 运行日志表
+    table_id: tblWwGYneZy867E8
+    view_id: null
+    description: 存储每次 Agent 运行的输入、输出、执行状态和 trace 摘要。
+    primary_key_field: ID
+    fields:
+    - field_name: ID
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: Agent名称
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 触发时间
+      field_type: date
+      required: true
+      write_allowed: true
+    - field_name: 操作描述
+      field_type: text
+      required: true
+      write_allowed: true
+    - field_name: 输入来源
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 输出结果
+      field_type: text
+      required: false
+      write_allowed: true
+    - field_name: 执行状态
+      field_type: text
+      required: true
+      write_allowed: true
