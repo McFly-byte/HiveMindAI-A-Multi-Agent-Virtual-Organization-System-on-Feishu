@@ -1,0 +1,47 @@
+agent_id: project_secretary
+role: business_agent
+entrypoint: llm_agent
+display_name: 项目秘书 Agent
+description: 读取项目上下文并输出项目画像、缺失字段和异常信号；Feishu 操作必须委托。
+workspace_path: agents/project_secretary
+prompt:
+  system: AGENT.md
+  shared:
+    - prompts/shared/output_rules.md
+    - prompts/shared/evidence_rules.md
+model:
+  provider: deepseek
+  name: deepseek-chat
+  temperature: 0.1
+  max_tokens: 4096
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 4
+  max_child_runs: 4
+  timeout_seconds: 150
+  max_retries: 2
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic, reflective]
+  max_search_results: 8
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [memory]
+  direct_tools:
+    - memory.search
+    - memory.write
+    - memory.reflect
+  delegated_toolsets:
+    feishu: feishu_tool_agent
+orchestration:
+  subscribes:
+    - project.state.check_requested
+  emits:
+    - project.state.checked
+  priority: 50
+  max_parallel_runs: 1
+input_schema: ProjectStateInput
+output_schema: ProjectStateOutput

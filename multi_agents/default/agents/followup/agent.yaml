@@ -1,0 +1,49 @@
+agent_id: followup
+role: business_agent
+entrypoint: llm_agent
+display_name: 追问 Agent
+description: 根据缺失信息、待确认风险和阻塞项生成具体追问内容；Feishu 操作必须委托。
+workspace_path: agents/followup
+prompt:
+  system: AGENT.md
+  shared:
+    - prompts/shared/output_rules.md
+    - prompts/shared/evidence_rules.md
+model:
+  provider: deepseek
+  name: deepseek-chat
+  temperature: 0.2
+  max_tokens: 4096
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 4
+  max_child_runs: 4
+  timeout_seconds: 150
+  max_retries: 2
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic, reflective]
+  max_search_results: 8
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [memory]
+  direct_tools:
+    - memory.search
+    - memory.write
+    - memory.reflect
+  denied_tools:
+    - feishu.*
+  delegated_toolsets:
+    feishu: feishu_tool_agent
+orchestration:
+  subscribes:
+    - risk.analysis.completed
+  emits:
+    - followup.generated
+  priority: 30
+  max_parallel_runs: 1
+input_schema: FollowUpInput
+output_schema: FollowUpOutput

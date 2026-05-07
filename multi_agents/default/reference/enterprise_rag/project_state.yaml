@@ -1,0 +1,40 @@
+project_id: enterprise_rag
+project_name: 企业知识库 RAG 系统
+description: 一个包含产品、前端、后端、算法、测试和项目经理角色的软件研发项目，用于飞书 AI 校园挑战赛 MVP Demo。
+base_app_token: JM0Mbs2RyaTjXfsFoOwcECyqnfc
+default_time_range_days: 14
+allowed_agents:
+- coordinator
+- project_secretary
+- data_gap_inspector
+- risk_analysis
+- followup
+- resource_coordination
+- weekly_report
+- project_retrospective
+members:
+- name: 张三
+  role_type: 项目经理
+  responsibilities:
+  - 排期
+  - 风险
+  - 周报
+  - 跨角色协调
+- name: 李四
+  role_type: 后端
+  responsibilities:
+  - 用户系统
+  - 知识库 API
+  - 任务调度
+- name: 王五
+  role_type: 算法
+  responsibilities:
+  - RAG 检索
+  - 向量库
+  - 回答评估
+- name: 赵六
+  role_type: 测试
+  responsibilities:
+  - 测试用例
+  - 冒烟测试
+  - 回归测试

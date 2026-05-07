@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+import asyncio
+import importlib
 import json
 import os
 import threading
@@ -98,12 +100,29 @@ def _start_im_listener(lark: Any, event_bus: EventBus):
     )
 
     def _run_ws():
+        global _ws_started
+        thread_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(thread_loop)
         try:
+            # lark_oapi.ws.client captures an event loop at import time. In the
+            # agent daemon the package is imported from the main asyncio loop,
+            # so the WS thread must replace that module-global loop before
+            # Client.start() calls run_until_complete().
+            try:
+                ws_client_module = importlib.import_module("lark_oapi.ws.client")
+                setattr(ws_client_module, "loop", thread_loop)
+            except Exception:
+                pass
             event_bus.publish(ToolIntegrationEvent(event_type="feishu.ws.started", source="feishu.ws", payload={"app_id": app_id}))
             cli = lark.ws.Client(app_id, app_secret, event_handler=event_handler, log_level=lark.LogLevel.DEBUG)
             cli.start()
         except Exception as e:
+            with _ws_lock:
+                _ws_started = False
             event_bus.publish(ToolIntegrationEvent(event_type="feishu.ws.error", source="feishu.ws", payload={"error": str(e)}))
+        finally:
+            if not thread_loop.is_running():
+                thread_loop.close()
 
     threading.Thread(target=_run_ws, daemon=True, name="feishu-im-ws").start()
 

@@ -29,3 +29,7 @@ Agents.md
 tests
 
 *.pyc
+!tests/
+tests/*
+!tests/agent_hive/
+!tests/agent_hive/*.py

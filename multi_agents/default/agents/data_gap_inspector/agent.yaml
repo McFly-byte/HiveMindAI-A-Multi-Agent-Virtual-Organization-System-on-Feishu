@@ -1,0 +1,50 @@
+agent_id: data_gap_inspector
+role: business_agent
+entrypoint: llm_agent
+display_name: 数据缺口巡检 Agent
+description: FR-02 任务巡检与数据缺口识别；只提出巡检意图，Feishu API 由 feishu_tool_agent 执行。
+workspace_path: agents/data_gap_inspector
+prompt:
+  system: AGENT.md
+  shared:
+    - prompts/shared/output_rules.md
+    - prompts/shared/evidence_rules.md
+    - prompts/shared/no_hallucination_rules.md
+model:
+  provider: deepseek
+  name: deepseek-chat
+  temperature: 0.1
+  max_tokens: 4096
+  timeout_seconds: 60
+  json_mode: true
+runtime_limits:
+  max_steps: 4
+  max_child_runs: 4
+  timeout_seconds: 180
+  max_retries: 2
+memory:
+  enabled: true
+  namespace: self
+  read_scopes: [self, project]
+  write_types: [episodic, reflective]
+  max_search_results: 8
+  auto_write_run_summary: true
+tool_access:
+  direct_toolsets: [memory]
+  direct_tools:
+    - memory.search
+    - memory.write
+    - memory.reflect
+  denied_tools:
+    - feishu.*
+  delegated_toolsets:
+    feishu: feishu_tool_agent
+orchestration:
+  subscribes:
+    - fr02.inspection.requested
+  emits:
+    - fr02.inspection.completed
+  priority: 60
+  max_parallel_runs: 1
+input_schema: FR02InspectionInput
+output_schema: AgentOutput
